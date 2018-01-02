@@ -10,15 +10,8 @@ import (
 	"github.com/gshilin/external_payments/db"
 )
 
-// +Request for payment
-// Store parameters
-// Replace return url to us
-// Redirect to pelecard
-// When redirected back: record cause of redirection, record additional parameters and redirect to requester
-
-// When requested approval -- send it
-
 // TODO:
+// TODO Approve result
 // TODO Approve requesting client
 
 func main() {
