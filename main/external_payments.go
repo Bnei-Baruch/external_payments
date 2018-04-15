@@ -18,6 +18,7 @@ import (
 // TODO Add reference [and other fields???]
 // TODO Approve result
 // TODO Approve requesting client
+// TODO: On successful payment -- redirect to ErrorURL in case of validation errors
 
 func main() {
 	env := os.Getenv("ENV")

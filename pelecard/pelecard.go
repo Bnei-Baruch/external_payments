@@ -10,6 +10,8 @@ import (
 )
 
 type PeleCard struct {
+	Url string `json:"-"`
+
 	User     string `json:"user"`
 	Password string `json:"password"`
 	Terminal string `json:"terminal"`
@@ -48,17 +50,14 @@ type PeleCard struct {
 }
 
 func (p *PeleCard) Init() (err error) {
-	user := os.Getenv("PELECARD_USER")
-	password := os.Getenv("PELECARD_PASSWORD")
-	terminal := os.Getenv("PELECARD_TERMINAL")
-	if user == "" || password == "" || terminal == "" {
+	p.User = os.Getenv("PELECARD_USER")
+	p.Password = os.Getenv("PELECARD_PASSWORD")
+	p.Terminal = os.Getenv("PELECARD_TERMINAL")
+	p.Url = os.Getenv("PELECARD_URL")
+	if p.User == "" || p.Password == "" || p.Terminal == "" || p.Url == "" {
 		err = fmt.Errorf("PELECARD parameters are missing")
 		return
 	}
-
-	p.User = user
-	p.Password = password
-	p.Terminal = terminal
 
 	p.LogoUrl = "http://www.kab.co.il/images/hebmain/logo1.png"
 	p.MinPayments = 1
@@ -139,7 +138,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 func (p *PeleCard) connect(action string) (err error, result map[string]interface{}) {
 	params, _ := json.Marshal(*p)
 	//fmt.Println(string(params))
-	resp, err := http.Post("https://gateway20.pelecard.biz:443/PaymentGW"+action, "application/json", bytes.NewBuffer(params))
+	resp, err := http.Post(p.Url+action, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}

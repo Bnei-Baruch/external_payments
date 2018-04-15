@@ -3,8 +3,9 @@ package types
 type PaymentRequest struct {
 	Id uint64 `json:"-" sql:"id,omitempty"`
 
-	UserKey string `json:"userKey" form:"userKey" db:"user_key" validate:"string,required"`
-	CreatedAt    string  `json:"-" db:"created_at"`
+	UserKey   string `json:"userKey" form:"userKey" db:"user_key" validate:"string,required"`
+	CreatedAt string `json:"-" db:"created_at"`
+	Status    string `json:"-" db:"status"`
 
 	// Part for Pelecard
 	GoodURL   string `json:"goodURL" form:"goodURL" db:"good_url" validate:"string,required"`
@@ -25,7 +26,7 @@ type PaymentRequest struct {
 	SKU          string  `json:"sku" form:"sku" db:"sku" validate:"string,required"`
 	VAT          string  `json:"vat" form:"vat" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
 	Installments int     `json:"installments" form:"installments" db:"installments" validate:"number,min=1,max=12"`
-	Language     string  `json:"language" form:"language" db:"language" validate:"string,required,values=EN|HE"`
+	Language     string  `json:"language" form:"language" db:"language" validate:"string,required,values=EN|HE|RU"`
 	Reference    string  `json:"reference" form:"reference" db:"reference" validate:"string,required"`
 	Organization string  `json:"organization" form:"organization" db:"organization" validate:"string,required,values=ben2"`
 }

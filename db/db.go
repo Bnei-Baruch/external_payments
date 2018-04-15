@@ -50,8 +50,7 @@ func initDB() (err error) {
 		reference 		VARCHAR(10) NOT NULL,
 		organization 	TEXT NOT NULL,
 
-		status			VARCHAR(255) NOT NULL DEFAULT 'new',
-		UNIQUE (sku, user_key)
+		status			VARCHAR(255) NOT NULL DEFAULT 'new'
 	) engine=InnoDB default charset utf8;`
 	const schema2 = `
 	CREATE TABLE IF NOT EXISTS bb_ext_pelecard_responses (
@@ -207,7 +206,7 @@ func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
 	result, err = storeRequest.Exec(
 		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
 		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
-		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference, p.Organization);
+		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference, p.Organization)
 	if err != nil {
 		fmt.Printf("DB StoreRequest Error: %v\n", err)
 		return
@@ -221,7 +220,7 @@ func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
-	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = $1 LIMIT 1", userKey)
+	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? LIMIT 1", userKey)
 	return
 }
 

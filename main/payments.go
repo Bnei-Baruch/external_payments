@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-querystring/query"
 
 	"github.com/gshilin/external_payments/db"
 	"github.com/gshilin/external_payments/pelecard"
 	"github.com/gshilin/external_payments/types"
+	"runtime/debug"
 )
 
 func NewPayment(c *gin.Context) {
@@ -20,20 +20,20 @@ func NewPayment(c *gin.Context) {
 	request := types.PaymentRequest{}
 	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			onError("Bind"+err.Error(), c)
 			return
 		}
 	}
 
 	fmt.Printf("Request: %#v\n", request)
 	if errFound, errors := validateStruct(request); errFound {
-		c.JSON(http.StatusBadRequest, gin.H{"error": strings.Join(errors, "\n")})
+		onError("validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 
 	// Store request into DB
 	if _, err = db.StoreRequest(request); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError("StoreRequest"+err.Error(), c)
 		return
 	}
 
@@ -45,10 +45,9 @@ func NewPayment(c *gin.Context) {
 		currency = 978
 	}
 
-	url := location.Get(c)
-	goodUrl := fmt.Sprintf("%s://%s/payments/good", url.Scheme, url.Host)
-	errorUrl := fmt.Sprintf("%s://%s/payments/error", url.Scheme, url.Host)
-	cancelUrl := fmt.Sprintf("%s://%s/payments/cancel", url.Scheme, url.Host)
+	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/good")
+	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/error")
+	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/cancel")
 
 	// Request Pelecard
 	card := &pelecard.PeleCard{
@@ -73,14 +72,14 @@ func NewPayment(c *gin.Context) {
 	}
 
 	if err = card.Init(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError("Init"+err.Error(), c)
 		return
 	}
 
 	if err, url := card.GetRedirectUrl(); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError("GetRedirectUrl"+err.Error(), c)
 	} else {
-		c.JSON(http.StatusOK, gin.H{"url": url})
+		onRedirect(url, "", c)
 	}
 }
 
@@ -101,20 +100,20 @@ func GoodPayment(c *gin.Context) {
 	form := loadPeleCardForm(c)
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError("UpdateRequestTemp: "+err.Error(), c)
 		return
 	}
 
 	// approve params
 	card := &pelecard.PeleCard{}
 	if err := card.Init(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError("Init"+err.Error(), c)
 		return
 	}
 
 	var msg map[string]interface{}
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError("GetTransaction"+err.Error(), c)
 		return
 	}
 
@@ -124,18 +123,18 @@ func GoodPayment(c *gin.Context) {
 	response.UserKey = form.UserKey
 	// update DB
 	if err = db.UpdateRequest(response); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError("UpdateRequest"+err.Error(), c)
 		return
 	}
 	// real validation
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError("LoadRequest"+err.Error(), c)
 		return
 	}
 
 	if err := card.Init(); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError("Init"+err.Error(), c)
 		return
 	}
 	card.ConfirmationKey = form.ConfirmationKey
@@ -143,24 +142,17 @@ func GoodPayment(c *gin.Context) {
 	card.TotalX100 = fmt.Sprintf("%d", int(request.Price*100.00))
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError("ValidateByUniqueKey"+err.Error(), c)
 		return
 	}
 	if !valid {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": "Confirmation error"})
+		onError("Confirmation error", c)
 		return
 	}
 
 	// redirect to GoodURL
 	v, _ := query.Values(response)
-	var q string
-	if strings.ContainsRune(request.GoodURL, '?') {
-		q = "&"
-	} else {
-		q = "?"
-	}
-	goodUrl := fmt.Sprintf("%s%s%s", request.GoodURL, q, v.Encode())
-	c.Redirect(http.StatusCreated, goodUrl)
+	onSuccess(request.GoodURL, v.Encode(), c)
 }
 
 func ErrorPayment(c *gin.Context) {
@@ -168,24 +160,16 @@ func ErrorPayment(c *gin.Context) {
 
 	form := loadPeleCardForm(c)
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError(err.Error(), c)
 		return
 	}
 
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError(err.Error(), c)
 		return
 	}
-	var q string
-	if strings.ContainsRune(request.GoodURL, '?') {
-		q = "&"
-	} else {
-		q = "?"
-	}
-	errorURL := fmt.Sprintf("%s%s%s", request.ErrorURL, q,
-		"error="+pelecard.GetMessage(form.PelecardStatusCode))
-	c.Redirect(http.StatusCreated, errorURL)
+	onRedirect(request.ErrorURL, pelecard.GetMessage(form.PelecardStatusCode), c)
 }
 
 func CancelPayment(c *gin.Context) {
@@ -193,17 +177,58 @@ func CancelPayment(c *gin.Context) {
 
 	form := loadPeleCardForm(c)
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		onError(err.Error(), c)
 		return
 	}
 
 	var request = types.PaymentRequest{}
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		c.JSON(http.StatusNotAcceptable, gin.H{"error": err.Error()})
+		onError(err.Error(), c)
 		return
 	}
-	c.Redirect(http.StatusCreated, request.CancelURL)
+	onRedirect(request.ErrorURL, "", c)
 }
 
-// POST curl --url http://localhost:3001/payments/new -H "Content-Type: applcation/json" -d '{"org":"bb","sku":"123123123","vat":"y","name":"Gregory Shilin","price":10.21,"currency":"USD","installments":1,"details":"test action","email":"gshilin@gmail.com","street":"street","city":"city","country":"country","language":"EN","reference":"ex-123123","userKey":"123123","goodURL":"https://example.com/goodURL","errorURL":"https://example.com/errorURL","cancelURL":"https://example.com/cancelURL"}'
-// GET curl 'http://localhost:3001/payments/new?org=bb&sku=123123123&vat=y&name=Gregory%32Shilin&currency=USD&installments=1&details=test%32action&email=gshilin@gmail.com&street=street&city=city&country=country&language=EN&reference=ex123123&goodURL=https://example.com/goodURL&errorURL=https://example.com/errorURL&cancelURL=https://example.com/cancelURL&price=10.22&userKey=123111'
+func onError(err string, c *gin.Context) {
+	html := fmt.Sprintf("<html><body><h1 style='color: red;'>Error</h1><code>%s</code><br><pre>%s</pre></body></html>", err, debug.Stack())
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write([]byte(html))
+}
+
+func onRedirect(url string, msg string, c *gin.Context) {
+	var target string
+	if msg == "" {
+		target = url
+	} else {
+		var q string
+		if strings.ContainsRune(url, '?') {
+			q = "&"
+		} else {
+			q = "?"
+		}
+
+		target = fmt.Sprintf("%s%serror=%s", url, q, msg)
+	}
+	html := "<script>window.location = '" + target + "';</script>"
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write([]byte(html))
+}
+
+func onSuccess(url string, msg string, c *gin.Context) {
+	var target string
+	if msg == "" {
+		target = url
+	} else {
+		var q string
+		if strings.ContainsRune(url, '?') {
+			q = "&"
+		} else {
+			q = "?"
+		}
+
+		target = fmt.Sprintf("%s%ssuccess=%s", url, q, msg)
+	}
+	html := "<script>window.location = '" + target + "';</script>"
+	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.Write([]byte(html))
+}
