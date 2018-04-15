@@ -1,7 +1,7 @@
 package db
 
 import (
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 	"os"
 	"log"
 	"github.com/gshilin/external_payments/types"
@@ -12,9 +12,9 @@ import (
 )
 
 var (
-	db                *sqlx.DB
-	storeRequest      *sql.Stmt
-	loadRequest       *sql.Stmt
+	db           *sqlx.DB
+	storeRequest *sql.Stmt
+	//loadRequest       *sql.Stmt
 	updateRequestTemp *sql.Stmt
 	updateRequest     *sql.Stmt
 )
@@ -22,76 +22,110 @@ var (
 const numOfUpdates = 20
 
 func initDB() (err error) {
-	const schema = `
-	CREATE TABLE IF NOT EXISTS requests (
-		id           	BIGSERIAL PRIMARY KEY,
-
+	const schema1 = `
+	CREATE TABLE IF NOT EXISTS bb_ext_requests (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		
 		user_key	 	VARCHAR(255) NOT NULL,
+		
 		good_url	 	TEXT NOT NULL,
 		error_url	 	TEXT NOT NULL,
 		cancel_url	 	TEXT NOT NULL,
 
-		organization 	TEXT NOT NULL,
-		sku			 	VARCHAR(255) NOT NULL ,
-		vat				BOOLEAN NOT NULL ,
-		name 			VARCHAR(255) NOT NULL ,
-		details 		VARCHAR(255) NOT NULL ,
-		price 			REAL NOT NULL ,
-		currency 		VARCHAR(255) NOT NULL ,
-		installments 	SMALLINT NOT NULL ,
-		email 			VARCHAR(255) NOT NULL ,
-		street 			VARCHAR(255) NOT NULL ,
-		city 			VARCHAR(255) NOT NULL ,
-		country 		VARCHAR(255) NOT NULL ,
+		name 			VARCHAR(255) NOT NULL,
+		price 			REAL NOT NULL,
+		currency 		VARCHAR(255) NOT NULL,
+		email 			VARCHAR(255) NOT NULL,
+		phone 			VARCHAR(255) NOT NULL,
+		street 			VARCHAR(255) NOT NULL,
+		city 			VARCHAR(255) NOT NULL,
+		country 		VARCHAR(255) NOT NULL,
+		details 		VARCHAR(255) NOT NULL,
+		participants 	VARCHAR(255) NOT NULL,
+		sku			 	VARCHAR(255) NOT NULL,
+		vat				VARCHAR(1) NOT NULL,
+		installments 	SMALLINT NOT NULL,
+		created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		language 		VARCHAR(2) NOT NULL,
+		reference 		VARCHAR(10) NOT NULL,
+		organization 	TEXT NOT NULL,
 
+		status			VARCHAR(255) NOT NULL DEFAULT 'new',
 		UNIQUE (sku, user_key)
-	);
-	CREATE TABLE IF NOT EXISTS pelecard_responses (
+	) engine=InnoDB default charset utf8;`
+	const schema2 = `
+	CREATE TABLE IF NOT EXISTS bb_ext_pelecard_responses (
 		user_key	 			VARCHAR(255) NOT NULL,
-		pelecard_transaction_id VARCHAR(255) ,
-		pelecard_status_code 	VARCHAR(255) ,
-		approval_no 			VARCHAR(255) ,
-		confirmation_key 		VARCHAR(255) ,
+		pelecard_transaction_id VARCHAR(255),
+		pelecard_status_code 	VARCHAR(255),
+		approval_no 			VARCHAR(255),
+		confirmation_key 		VARCHAR(255),
 		param_x 				VARCHAR(255)
-	);
-	CREATE TABLE IF NOT EXISTS payment_responses (
+	) engine=InnoDB default charset utf8;`
+	const schema3 = `
+	CREATE TABLE IF NOT EXISTS bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
-		transaction_id 				VARCHAR(255) ,
-		card_hebrew_name 			VARCHAR(255) ,
-		transaction_update_time 	VARCHAR(255) ,
-		credit_card_abroad_card 	VARCHAR(255) ,
-		first_payment_total 		VARCHAR(255) ,
-		credit_type 				VARCHAR(255) ,
-		credit_card_brand 			VARCHAR(255) ,
-		voucher_id 					VARCHAR(255) ,
-		station_number 				VARCHAR(255) ,
-		additional_details_param_x 	VARCHAR(255) ,
-		credit_card_company_issuer 	VARCHAR(255) ,
-		debit_code 					VARCHAR(255) ,
-		fixed_payment_total 		VARCHAR(255) ,
-		credit_card_number 			VARCHAR(255) ,
-		credit_card_exp_date 		VARCHAR(255) ,
-		credit_card_company_clearer VARCHAR(255) ,
-		debit_total 				VARCHAR(255) ,
-		total_payments 				VARCHAR(255) ,
-		debit_type 					VARCHAR(255) ,
-		transaction_init_time 		VARCHAR(255) ,
-		j_param 					VARCHAR(255) ,
-		transaction_pelecard_id 	VARCHAR(255) ,
+		transaction_id 				VARCHAR(255),
+		card_hebrew_name 			VARCHAR(255),
+		transaction_update_time 	VARCHAR(255),
+		credit_card_abroad_card 	VARCHAR(255),
+		first_payment_total 		VARCHAR(255),
+		credit_type 				VARCHAR(255),
+		credit_card_brand 			VARCHAR(255),
+		voucher_id 					VARCHAR(255),
+		station_number 				VARCHAR(255),
+		additional_details_param_x 	VARCHAR(255),
+		credit_card_company_issuer 	VARCHAR(255),
+		debit_code 					VARCHAR(255),
+		fixed_payment_total 		VARCHAR(255),
+		credit_card_number 			VARCHAR(255),
+		credit_card_exp_date 		VARCHAR(255),
+		credit_card_company_clearer VARCHAR(255),
+		debit_total 				VARCHAR(255),
+		total_payments 				VARCHAR(255),
+		debit_type 					VARCHAR(255),
+		transaction_init_time 		VARCHAR(255),
+		j_param 					VARCHAR(255),
+		transaction_pelecard_id 	VARCHAR(255),
 		debit_currency 				VARCHAR(255)
-	);
-	`
-
-	if _, err = db.Exec(schema); err != nil {
-		log.Fatalf("DB tables creation error: %v\n", err)
+	) engine=InnoDB default charset utf8;`
+	if _, err = db.Exec(schema1); err != nil {
+		log.Fatalf("DB tables 1 creation error: %v\n", err)
+	}
+	if _, err = db.Exec(schema2); err != nil {
+		log.Fatalf("DB tables 2 creation error: %v\n", err)
+	}
+	if _, err = db.Exec(schema3); err != nil {
+		log.Fatalf("DB tables 3 creation error: %v\n", err)
 	}
 	return
 }
 
 func Connect() (err error) {
-	db, err = sqlx.Open("postgres", os.Getenv("DATABASE_URL"))
-	if err != nil {
+	host := os.Getenv("CIVI_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	dbName := os.Getenv("CIVI_DBNAME")
+	if dbName == "" {
+		dbName = "localhost"
+	}
+	user := os.Getenv("CIVI_USER")
+	if user == "" {
+		log.Fatalf("Unable to connect without username\n")
+		os.Exit(2)
+	}
+	password := os.Getenv("CIVI_PASSWORD")
+	if password == "" {
+		log.Fatalf("Unable to connect without password\n")
+	}
+	protocol := os.Getenv("CIVI_PROTOCOL")
+	if protocol == "" {
+		log.Fatalf("Unable to connect without protocol\n")
+	}
+
+	dsn := fmt.Sprintf("%s:%s@%s(%s)/%s", user, password, protocol, host, dbName)
+	if db, err = sqlx.Open("mysql", dsn); err != nil {
 		log.Fatalf("DB connection error: %v\n", err)
 		return
 	}
@@ -111,12 +145,14 @@ func Connect() (err error) {
 
 	var request string
 	request = heredoc.Docf(`
-		INSERT INTO requests (
-			user_key, good_url, error_url, cancel_url, organization, sku, vat, name,
-			details, price, currency, installments, email, street, city, country, language
+		INSERT INTO bb_ext_requests (
+			user_key, good_url, error_url, cancel_url, 
+			name, price, currency, email, phone, 
+			street, city, country, participants, details, sku, vat, installments, language, 
+			reference, organization
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
-		) RETURNING id
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
 	`)
 	storeRequest, err = db.Prepare(request)
 	if err != nil {
@@ -125,10 +161,10 @@ func Connect() (err error) {
 	}
 
 	request = heredoc.Docf(`
-		INSERT INTO pelecard_responses (
+		INSERT INTO bb_ext_pelecard_responses (
 			user_key, pelecard_transaction_id, pelecard_status_code, approval_no, confirmation_key, param_x
 		) VALUES (
-			$1, $2, $3, $4, $5, $6
+			?, ?, ?, ?, ?, ?
 		)
 	`)
 	updateRequestTemp, err = db.Prepare(request)
@@ -138,7 +174,7 @@ func Connect() (err error) {
 	}
 
 	request = heredoc.Docf(`
-		INSERT INTO payment_responses (
+		INSERT INTO bb_ext_payment_responses (
 			user_key,
 			transaction_id, card_hebrew_name, transaction_update_time, credit_card_abroad_card,
 			first_payment_total, credit_type, credit_card_brand, voucher_id, station_number,
@@ -147,7 +183,7 @@ func Connect() (err error) {
 			total_payments, debit_type, transaction_init_time, j_param, transaction_pelecard_id,
 			debit_currency
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`)
 	updateRequest, err = db.Prepare(request)
@@ -161,22 +197,31 @@ func Connect() (err error) {
 
 func Disconnect() {
 	storeRequest.Close()
+	updateRequestTemp.Close()
+	updateRequest.Close()
 	db.Close()
 }
 
 func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
-	err = storeRequest.QueryRow(
-		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL, p.Org, p.SKU, p.VAT, p.Name,
-		p.Details, p.Price, p.Currency, p.Installments, p.Email, p.Street, p.City, p.Country, p.Language).Scan(&lastId)
+	var result sql.Result
+	result, err = storeRequest.Exec(
+		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
+		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
+		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference, p.Organization);
 	if err != nil {
 		fmt.Printf("DB StoreRequest Error: %v\n", err)
+		return
+	}
+	lastId, err = result.LastInsertId()
+	if err != nil {
+		fmt.Printf("DB StoreRequest LastInsertId Error: %v\n", err)
+		return
 	}
 	return
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
-	//udb := db.Unsafe()
-	err = db.Get(p, "SELECT * FROM requests WHERE user_key = $1 LIMIT 1", userKey)
+	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = $1 LIMIT 1", userKey)
 	return
 }
 

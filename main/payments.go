@@ -19,21 +19,19 @@ func NewPayment(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
 	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
-		fmt.Println("NOT BINDED BY JSON STRING")
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			fmt.Println("NOT BINDED BY QUERY STRING")
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
+	fmt.Printf("Request: %#v\n", request)
 	if errFound, errors := validateStruct(request); errFound {
 		c.JSON(http.StatusBadRequest, gin.H{"error": strings.Join(errors, "\n")})
 		return
 	}
 
 	// Store request into DB
-	//var lastId int64
 	if _, err = db.StoreRequest(request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -66,6 +64,9 @@ func NewPayment(c *gin.Context) {
 	if request.Language == "HE" {
 		card.TopText = "BB כרטיסי אשראי"
 		card.BottomText = "© בני ברוך קבלה לעם"
+	} else if request.Language == "RU" {
+		card.TopText = "Бней Барух Каббала лаАм"
+		card.BottomText = "© Бней Барух Каббала лаАм"
 	} else {
 		card.TopText = "BB Credit Cards"
 		card.BottomText = "© Bnei Baruch Kabbalah laAm"
@@ -204,5 +205,5 @@ func CancelPayment(c *gin.Context) {
 	c.Redirect(http.StatusCreated, request.CancelURL)
 }
 
-// POST curl --url http://localhost:3001/payments/new -H "Content-Type: applcation/json" -d '{"org":"bb","sku":"123123123","vat":"y","name":"Gregory Shilin","price":10.21,"currency":"USD","installments":1,"details":"test action","email":"gshilin@gmail.com","street":"street","city":"city","country":"country","language":"EN","userKey":"123123","goodURL":"https://example.com/goodURL","errorURL":"https://example.com/errorURL","cancelURL":"https://example.com/cancelURL"}'
-// GET curl 'http://localhost:3001/payments/new?org=bb&sku=123123123&vat=y&name=Gregory%32Shilin&currency=USD&installments=1&details=test%32action&email=gshilin@gmail.com&street=street&city=city&country=country&language=EN&goodURL=https://example.com/goodURL&errorURL=https://example.com/errorURL&cancelURL=https://example.com/cancelURL&price=10.22&userKey=123111'
+// POST curl --url http://localhost:3001/payments/new -H "Content-Type: applcation/json" -d '{"org":"bb","sku":"123123123","vat":"y","name":"Gregory Shilin","price":10.21,"currency":"USD","installments":1,"details":"test action","email":"gshilin@gmail.com","street":"street","city":"city","country":"country","language":"EN","reference":"ex-123123","userKey":"123123","goodURL":"https://example.com/goodURL","errorURL":"https://example.com/errorURL","cancelURL":"https://example.com/cancelURL"}'
+// GET curl 'http://localhost:3001/payments/new?org=bb&sku=123123123&vat=y&name=Gregory%32Shilin&currency=USD&installments=1&details=test%32action&email=gshilin@gmail.com&street=street&city=city&country=country&language=EN&reference=ex123123&goodURL=https://example.com/goodURL&errorURL=https://example.com/errorURL&cancelURL=https://example.com/cancelURL&price=10.22&userKey=123111'

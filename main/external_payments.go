@@ -1,3 +1,5 @@
+// go build -o external_payments main/*; strip external_payments ; cp external_payments /media/sf_projects/bbpriority/
+// curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 package main
 
 import (
@@ -8,9 +10,12 @@ import (
 
 	"os"
 	"github.com/gshilin/external_payments/db"
+	"log"
+	"fmt"
 )
 
 // TODO:
+// TODO Add reference [and other fields???]
 // TODO Approve result
 // TODO Approve requesting client
 
@@ -23,7 +28,7 @@ func main() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	port := os.Getenv("PORT")
+	port := os.Getenv("EXT_PORT")
 	if port == "" {
 		port = ":8080"
 	}
@@ -38,7 +43,9 @@ func main() {
 	r.Use(location.Default())
 	r.Use(CORSMiddleware())
 	router(r)
-	r.Run(port)
+	// log.Fatal(autotls.Run(r, ":"+port))
+	fmt.Printf("Waiting on port %s\n", port)
+	log.Fatal(r.Run(":" + port))
 }
 
 func router(r *gin.Engine) {
