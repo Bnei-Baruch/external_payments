@@ -15,6 +15,18 @@ import (
 	"runtime/debug"
 )
 
+func ConfirmPayment(c *gin.Context) {
+	var err error
+	request := types.ConfirmRequest{}
+	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
+			onError("Bind"+err.Error(), c)
+			return
+		}
+	}
+	fmt.Printf("Confirm: %#v\n", request)
+}
+
 func NewPayment(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
@@ -53,6 +65,7 @@ func NewPayment(c *gin.Context) {
 	card := &pelecard.PeleCard{
 		Language:    request.Language,
 		UserKey:     request.UserKey,
+		ParamX:      request.Reference,
 		GoodUrl:     goodUrl,
 		ErrorUrl:    errorUrl,
 		CancelUrl:   cancelUrl,
@@ -86,7 +99,6 @@ func NewPayment(c *gin.Context) {
 func loadPeleCardForm(c *gin.Context) (form types.PeleCardResponse) {
 	form.PelecardTransactionId = c.PostForm("PelecardTransactionId")
 	form.PelecardStatusCode = c.PostForm("PelecardStatusCode")
-	form.ApprovalNo = c.PostForm("ApprovalNo")
 	form.ConfirmationKey = c.PostForm("ConfirmationKey")
 	form.ParamX = c.PostForm("ParamX")
 	form.UserKey = c.PostForm("UserKey")

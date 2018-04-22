@@ -58,6 +58,7 @@ func router(r *gin.Engine) {
 		payments.POST("/good", GoodPayment)
 		payments.POST("/error", ErrorPayment)
 		payments.POST("/cancel", CancelPayment)
+		payments.POST("/confirm", ConfirmPayment)
 	}
 }
 

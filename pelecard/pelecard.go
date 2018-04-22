@@ -22,6 +22,7 @@ type PeleCard struct {
 	LogoUrl    string `json:",omitempty"`
 
 	UserKey   string `json:",omitempty"`
+	ParamX    string `json:",omitempty"`
 	GoodUrl   string `json:",omitempty"`
 	ErrorUrl  string `json:",omitempty"`
 	CancelUrl string `json:",omitempty"`
@@ -72,7 +73,7 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 		return
 	}
 
-	//fmt.Printf("%#v\n", msg)
+	//fmt.Printf("Pelecard: %#v\n", msg)
 	return
 }
 

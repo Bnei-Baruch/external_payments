@@ -1,34 +1,43 @@
 package types
 
+type ConfirmRequest struct {
+	UserKey      string  `json:"userKey" form:"userKey"`
+	Price        float64 `json:"price" form:"price" db:"price"`
+	Currency     string  `json:"currency" form:"currency" db:"currency"`
+	SKU          string  `json:"sku" form:"sku" db:"sku"`
+	Reference    string  `json:"reference" form:"reference" db:"reference"`
+	Organization string  `json:"organization" form:"organization" db:"organization"`
+}
+
 type PaymentRequest struct {
 	Id uint64 `json:"-" sql:"id,omitempty"`
 
-	UserKey   string `json:"userKey" form:"userKey" db:"user_key" validate:"string,required"`
+	UserKey   string `json:"UserKey" form:"UserKey" db:"user_key" validate:"string,required"`
 	CreatedAt string `json:"-" db:"created_at"`
 	Status    string `json:"-" db:"status"`
 
 	// Part for Pelecard
-	GoodURL   string `json:"goodURL" form:"goodURL" db:"good_url" validate:"string,required"`
-	ErrorURL  string `json:"errorURL" form:"errorURL" db:"error_url" validate:"string,required"`
-	CancelURL string `json:"cancelURL" form:"cancelURL" db:"cancel_url" validate:"string,required"`
+	GoodURL   string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
+	ErrorURL  string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
+	CancelURL string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
 
 	// Part for Priority
-	Name         string  `json:"name" form:"name" db:"name" validate:"string,required"`
-	Price        float64 `json:"price" form:"price" db:"price" validate:"float"`
-	Currency     string  `json:"currency" form:"currency" db:"currency" validate:"string,required,values=USD|EUR|NIS"`
-	Email        string  `json:"email" form:"email" db:"email" validate:"email,required"`
-	Phone        string  `json:"phone" form:"phone" db:"phone" validate:"string"`
-	Street       string  `json:"street" form:"street" db:"street" validate:"string,required"`
-	City         string  `json:"city" form:"city" db:"city" validate:"string,required"`
-	Country      string  `json:"country" form:"country" db:"country" validate:"string,required"`
-	Participans  string  `json:"participants" form:"participants" db:"participants" validate:"string"`
-	Details      string  `json:"details" form:"details" db:"details" validate:"string"`
-	SKU          string  `json:"sku" form:"sku" db:"sku" validate:"string,required"`
-	VAT          string  `json:"vat" form:"vat" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
-	Installments int     `json:"installments" form:"installments" db:"installments" validate:"number,min=1,max=12"`
-	Language     string  `json:"language" form:"language" db:"language" validate:"string,required,values=EN|HE|RU"`
-	Reference    string  `json:"reference" form:"reference" db:"reference" validate:"string,required"`
-	Organization string  `json:"organization" form:"organization" db:"organization" validate:"string,required,values=ben2"`
+	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
+	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float"`
+	Currency     string  `json:"Currency" form:"Currency" db:"currency" validate:"string,required,values=USD|EUR|NIS|ILS"`
+	Email        string  `json:"Email" form:"Email" db:"email" validate:"email,required"`
+	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string"`
+	Street       string  `json:"Street" form:"Street" db:"street" validate:"string,required"`
+	City         string  `json:"City" form:"City" db:"city" validate:"string,required"`
+	Country      string  `json:"Country" form:"Country" db:"country" validate:"string,required"`
+	Participans  string  `json:"Participants" form:"Participants" db:"participants" validate:"string"`
+	Details      string  `json:"Details" form:"Details" db:"details" validate:"string"`
+	SKU          string  `json:"SKU" form:"SKU" db:"sku" validate:"string,required"`
+	VAT          string  `json:"Vat" form:"Vat" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
+	Installments int     `json:"Installments" form:"Installments" db:"installments" validate:"number,min=1,max=12"`
+	Language     string  `json:"Language" form:"Language" db:"language" validate:"string,required,values=EN|HE|RU"`
+	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
+	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2"`
 }
 
 // 	CreditType        string  `db:"credit_type"`
@@ -67,7 +76,6 @@ type PeleCardResponse struct {
 	PelecardTransactionId string `db:"pelecard_transaction_id"`
 	PelecardStatusCode    string `db:"pelecard_status_code"`
 	ConfirmationKey       string `db:"confirmation_key"`
-	ApprovalNo            string `db:"approval_no"`
 	ParamX                string `db:"param_x"`
 }
 

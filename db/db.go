@@ -57,7 +57,6 @@ func initDB() (err error) {
 		user_key	 			VARCHAR(255) NOT NULL,
 		pelecard_transaction_id VARCHAR(255),
 		pelecard_status_code 	VARCHAR(255),
-		approval_no 			VARCHAR(255),
 		confirmation_key 		VARCHAR(255),
 		param_x 				VARCHAR(255)
 	) engine=InnoDB default charset utf8;`
@@ -161,9 +160,9 @@ func Connect() (err error) {
 
 	request = heredoc.Docf(`
 		INSERT INTO bb_ext_pelecard_responses (
-			user_key, pelecard_transaction_id, pelecard_status_code, approval_no, confirmation_key, param_x
+			user_key, pelecard_transaction_id, pelecard_status_code, confirmation_key, param_x
 		) VALUES (
-			?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?
 		)
 	`)
 	updateRequestTemp, err = db.Prepare(request)
@@ -227,7 +226,7 @@ func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
 func UpdateRequestTemp(userKey string, p types.PeleCardResponse) (err error) {
 	_, err = updateRequestTemp.Exec(
 		userKey,
-		p.PelecardTransactionId, p.PelecardStatusCode, p.ApprovalNo, p.ConfirmationKey, p.ParamX)
+		p.PelecardTransactionId, p.PelecardStatusCode, p.ConfirmationKey, p.ParamX)
 	if err != nil {
 		fmt.Printf("DB UpdateRequestTemp Request Error: %v\n", err)
 	}
