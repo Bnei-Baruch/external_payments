@@ -1,12 +1,12 @@
 package types
 
 type ConfirmRequest struct {
-	UserKey      string  `json:"userKey" form:"userKey"`
-	Price        float64 `json:"price" form:"price" db:"price"`
-	Currency     string  `json:"currency" form:"currency" db:"currency"`
-	SKU          string  `json:"sku" form:"sku" db:"sku"`
-	Reference    string  `json:"reference" form:"reference" db:"reference"`
-	Organization string  `json:"organization" form:"organization" db:"organization"`
+	UserKey      string  `json:"UserKey"`
+	Price        float64 `json:"Price"`
+	Currency     string  `json:"Currency"`
+	SKU          string  `json:"SKU"`
+	Reference    string  `json:"Reference"`
+	Organization string  `json:"Organization"`
 }
 
 type PaymentRequest struct {
@@ -33,43 +33,13 @@ type PaymentRequest struct {
 	Participans  string  `json:"Participants" form:"Participants" db:"participants" validate:"string"`
 	Details      string  `json:"Details" form:"Details" db:"details" validate:"string"`
 	SKU          string  `json:"SKU" form:"SKU" db:"sku" validate:"string,required"`
-	VAT          string  `json:"Vat" form:"Vat" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
+	VAT          string  `json:"VAT" form:"VAT" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
 	Installments int     `json:"Installments" form:"Installments" db:"installments" validate:"number,min=1,max=12"`
 	Language     string  `json:"Language" form:"Language" db:"language" validate:"string,required,values=EN|HE|RU"`
 	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
 	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2"`
+	IsVisual     bool    `json:"IsVisual" form:"IsVisual" db:"is_visual"`
 }
-
-// 	CreditType        string  `db:"credit_type"`
-// 	CreditCardNumber  string  `db:"credit_card_number"`
-// 	CreditCardExpDate string  `db:"credit_card_exp_date"`
-// 	FirstPaymentTotal string  `db:"first_payment_total"`
-// 	PelecardTransactionId string `db:"pelecard_transaction_id"`
-// 	PelecardStatusCode    string `db:"pelecard_status_code"`
-// 	ApprovalNo            string `db:"approval_no"`
-// 	ConfirmationKey       string `db:"confirmation_key"`
-// 	ParamX                string `db:"param_x"`
-//
-// 	TransactionId            string `db:"transaction_id"`
-// 	CardHebrewName           string `db:"card_hebrew_name"`
-// 	TransactionUpdateTime    string `db:"transaction_update_time"`
-// 	CreditCardAbroadCard     string `db:"credit_card_abroad_card"`
-// 	CreditCardBrand          string `db:"credit_card_brand"`
-// 	VoucherId                string `db:"voucher_id"`
-// 	StationNumber            string `db:"station_number"`
-// 	AdditionalDetailsParamX  string `db:"additional_details_param_x"`
-// 	CreditCardCompanyIssuer  string `db:"credit_card_company_issuer"`
-// 	DebitCode                string `db:"debit_code"`
-// 	FixedPaymentTotal        string `db:"fixed_payment_total"`
-// 	CreditCardCompanyClearer string `db:"credit_card_company_clearer"`
-// 	DebitTotal               string `db:"debit_total"`
-// 	TotalPayment             string `db:"total_payments"`
-// 	DebitType                string `db:"debit_type"`
-// 	TransactionInitTime      string `db:"transaction_init_time"`
-// 	JParam                   string `db:"j_param"`
-// 	TransactionPelecardId    string `db:"transaction_pelecard_id"`
-// 	DebitCurrenct            string `db:"debit_currency"`
-// }
 
 type PeleCardResponse struct {
 	UserKey               string `db:"user_key"`

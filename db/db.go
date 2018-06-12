@@ -12,17 +12,18 @@ import (
 )
 
 var (
-	db           *sqlx.DB
-	storeRequest *sql.Stmt
-	//loadRequest       *sql.Stmt
+	db                *sqlx.DB
+	storeRequest      *sql.Stmt
 	updateRequestTemp *sql.Stmt
 	updateRequest     *sql.Stmt
+	setStatus         *sql.Stmt
 )
 
 const numOfUpdates = 20
 
 func initDB() (err error) {
-	const schema1 = `
+	schemas := []string{
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS bb_ext_requests (
 		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
 		
@@ -47,20 +48,21 @@ func initDB() (err error) {
 		installments 	SMALLINT NOT NULL,
 		created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		language 		VARCHAR(2) NOT NULL,
-		reference 		VARCHAR(10) NOT NULL,
+		reference 		VARCHAR(20) NOT NULL,
 		organization 	TEXT NOT NULL,
+		is_visual       TINYINT(1),
 
 		status			VARCHAR(255) NOT NULL DEFAULT 'new'
-	) engine=InnoDB default charset utf8;`
-	const schema2 = `
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS bb_ext_pelecard_responses (
 		user_key	 			VARCHAR(255) NOT NULL,
 		pelecard_transaction_id VARCHAR(255),
 		pelecard_status_code 	VARCHAR(255),
 		confirmation_key 		VARCHAR(255),
 		param_x 				VARCHAR(255)
-	) engine=InnoDB default charset utf8;`
-	const schema3 = `
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),
@@ -86,15 +88,12 @@ func initDB() (err error) {
 		j_param 					VARCHAR(255),
 		transaction_pelecard_id 	VARCHAR(255),
 		debit_currency 				VARCHAR(255)
-	) engine=InnoDB default charset utf8;`
-	if _, err = db.Exec(schema1); err != nil {
-		log.Fatalf("DB tables 1 creation error: %v\n", err)
+	) engine=InnoDB default charset utf8;`),
 	}
-	if _, err = db.Exec(schema2); err != nil {
-		log.Fatalf("DB tables 2 creation error: %v\n", err)
-	}
-	if _, err = db.Exec(schema3); err != nil {
-		log.Fatalf("DB tables 3 creation error: %v\n", err)
+	for idx, schema := range schemas {
+		if _, err = db.Exec(schema); err != nil {
+			log.Fatalf("DB tables %d creation error: %v\n", idx, err)
+		}
 	}
 	return
 }
@@ -141,15 +140,16 @@ func Connect() (err error) {
 		return
 	}
 
+	// Prepare prepared statements
 	var request string
-	request = heredoc.Docf(`
+	request = heredoc.Doc(`
 		INSERT INTO bb_ext_requests (
 			user_key, good_url, error_url, cancel_url, 
 			name, price, currency, email, phone, 
 			street, city, country, participants, details, sku, vat, installments, language, 
-			reference, organization
+			reference, organization, is_visual
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`)
 	storeRequest, err = db.Prepare(request)
@@ -158,7 +158,7 @@ func Connect() (err error) {
 		return
 	}
 
-	request = heredoc.Docf(`
+	request = heredoc.Doc(`
 		INSERT INTO bb_ext_pelecard_responses (
 			user_key, pelecard_transaction_id, pelecard_status_code, confirmation_key, param_x
 		) VALUES (
@@ -171,7 +171,7 @@ func Connect() (err error) {
 		return
 	}
 
-	request = heredoc.Docf(`
+	request = heredoc.Doc(`
 		INSERT INTO bb_ext_payment_responses (
 			user_key,
 			transaction_id, card_hebrew_name, transaction_update_time, credit_card_abroad_card,
@@ -190,6 +190,19 @@ func Connect() (err error) {
 		return
 	}
 
+	// Update status of the last (most recent) entry only
+	request = heredoc.Doc(`
+		UPDATE bb_ext_requests SET status = ? 
+		WHERE user_key = ?
+		ORDER BY id DESC
+		LIMIT 1
+	`)
+	setStatus, err = db.Prepare(request)
+	if err != nil {
+		log.Fatalf("DB setStatus preparation error: %v\n", err)
+		return
+	}
+
 	return
 }
 
@@ -197,6 +210,7 @@ func Disconnect() {
 	storeRequest.Close()
 	updateRequestTemp.Close()
 	updateRequest.Close()
+	setStatus.Close()
 	db.Close()
 }
 
@@ -205,7 +219,9 @@ func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
 	result, err = storeRequest.Exec(
 		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
 		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
-		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference, p.Organization)
+		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference,
+		p.Organization, p.IsVisual,
+	)
 	if err != nil {
 		fmt.Printf("DB StoreRequest Error: %v\n", err)
 		return
@@ -218,9 +234,30 @@ func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
 	return
 }
 
+func SetStatus(userKey string, value string) {
+	_, err := setStatus.Exec(value, userKey)
+	if err != nil {
+		fmt.Printf("DB SetStatus Error: %v\n", err)
+	}
+}
+
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
 	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? LIMIT 1", userKey)
 	return
+}
+
+func Confirm(p *types.ConfirmRequest) bool {
+	request := types.PaymentRequest{}
+	err := db.Get(&request,
+		heredoc.Doc(`
+			SELECT * 
+			FROM bb_ext_requests 
+			WHERE status = 'valid' AND user_key = ? AND price = ? 
+				  AND currency = ? AND sku = ? AND reference = ? 
+				  AND organization = ?
+		`),
+		p.UserKey, p.Price, p.Currency, p.SKU, p.Reference, p.Organization)
+	return err == nil
 }
 
 func UpdateRequestTemp(userKey string, p types.PeleCardResponse) (err error) {

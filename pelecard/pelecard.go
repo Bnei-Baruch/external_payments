@@ -73,7 +73,6 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 		return
 	}
 
-	//fmt.Printf("Pelecard: %#v\n", msg)
 	return
 }
 
@@ -119,12 +118,15 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 		p.TotalX100,
 	}
 	params, _ := json.Marshal(v)
+	fmt.Println("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", v)
 	resp, err := http.Post("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", bytes.NewBuffer(params))
 	if err != nil {
+		fmt.Println("Err != nil :(", err)
 		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		fmt.Println("StatusCode ", resp.StatusCode)
 		return
 	}
 
@@ -138,16 +140,13 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 
 func (p *PeleCard) connect(action string) (err error, result map[string]interface{}) {
 	params, _ := json.Marshal(*p)
-	//fmt.Println(string(params))
 	resp, err := http.Post(p.Url+action, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
-	//fmt.Printf("response: %+v\n", resp.Status)
 	defer resp.Body.Close()
 	var body map[string]interface{}
 	json.NewDecoder(resp.Body).Decode(&body)
-	//fmt.Println("response Body:", body)
 	if urlOk, ok := body["URL"]; ok {
 		if urlOk.(string) != "" {
 			result = make(map[string]interface{})

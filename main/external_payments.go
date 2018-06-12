@@ -14,12 +14,6 @@ import (
 	"fmt"
 )
 
-// TODO:
-// TODO Add reference [and other fields???]
-// TODO Approve result
-// TODO Approve requesting client
-// TODO: On successful payment -- redirect to ErrorURL in case of validation errors
-
 func main() {
 	env := os.Getenv("ENV")
 	if env == "" {
@@ -45,7 +39,7 @@ func main() {
 	r.Use(CORSMiddleware())
 	router(r)
 	// log.Fatal(autotls.Run(r, ":"+port))
-	fmt.Printf("Waiting on port %s\n", port)
+	fmt.Printf("<<< Waiting on port %s >>>\n", port)
 	log.Fatal(r.Run(":" + port))
 }
 
@@ -58,6 +52,7 @@ func router(r *gin.Engine) {
 		payments.POST("/good", GoodPayment)
 		payments.POST("/error", ErrorPayment)
 		payments.POST("/cancel", CancelPayment)
+		payments.GET("/confirm", ConfirmPayment)
 		payments.POST("/confirm", ConfirmPayment)
 	}
 }
@@ -77,16 +72,4 @@ func CORSMiddleware() gin.HandlerFunc {
 			c.Next()
 		}
 	}
-}
-
-// Helpers
-
-// Does array s includes value e?
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
 }

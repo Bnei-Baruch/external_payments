@@ -196,3 +196,15 @@ func validateStruct(s interface{}) (found bool, errs []string) {
 
 	return
 }
+
+// Helpers
+
+// Does array s includes value e?
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
