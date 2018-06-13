@@ -242,7 +242,7 @@ func SetStatus(userKey string, value string) {
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
-	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? LIMIT 1", userKey)
+	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
 	return
 }
 
