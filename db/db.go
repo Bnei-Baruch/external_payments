@@ -7,16 +7,11 @@ import (
 	"github.com/gshilin/external_payments/types"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/jmoiron/sqlx"
-	"database/sql"
 	"fmt"
 )
 
 var (
-	db                *sqlx.DB
-	storeRequest      *sql.Stmt
-	updateRequestTemp *sql.Stmt
-	updateRequest     *sql.Stmt
-	setStatus         *sql.Stmt
+	db *sqlx.DB
 )
 
 const numOfUpdates = 20
@@ -140,9 +135,15 @@ func Connect() (err error) {
 		return
 	}
 
-	// Prepare prepared statements
-	var request string
-	request = heredoc.Doc(`
+	return
+}
+
+func Disconnect() {
+	db.Close()
+}
+
+func StoreRequest(p types.PaymentRequest) (err error) {
+	request := heredoc.Doc(`
 		INSERT INTO bb_ext_requests (
 			user_key, good_url, error_url, cancel_url, 
 			name, price, currency, email, phone, 
@@ -152,93 +153,26 @@ func Connect() (err error) {
 			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`)
-	storeRequest, err = db.Prepare(request)
-	if err != nil {
-		log.Fatalf("DB storeRequest preparation error: %v\n", err)
-		return
-	}
 
-	request = heredoc.Doc(`
-		INSERT INTO bb_ext_pelecard_responses (
-			user_key, pelecard_transaction_id, pelecard_status_code, confirmation_key, param_x
-		) VALUES (
-			?, ?, ?, ?, ?
-		)
-	`)
-	updateRequestTemp, err = db.Prepare(request)
-	if err != nil {
-		log.Fatalf("DB updateRequestTemp preparation error: %v\n", err)
-		return
-	}
-
-	request = heredoc.Doc(`
-		INSERT INTO bb_ext_payment_responses (
-			user_key,
-			transaction_id, card_hebrew_name, transaction_update_time, credit_card_abroad_card,
-			first_payment_total, credit_type, credit_card_brand, voucher_id, station_number,
-			additional_details_param_x, credit_card_company_issuer, debit_code, fixed_payment_total,
-			credit_card_number, credit_card_exp_date, credit_card_company_clearer, debit_total,
-			total_payments, debit_type, transaction_init_time, j_param, transaction_pelecard_id,
-			debit_currency
-		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-		)
-	`)
-	updateRequest, err = db.Prepare(request)
-	if err != nil {
-		log.Fatalf("DB updateRequest preparation error: %v\n", err)
-		return
-	}
-
-	// Update status of the last (most recent) entry only
-	request = heredoc.Doc(`
-		UPDATE bb_ext_requests SET status = ? 
-		WHERE user_key = ?
-		ORDER BY id DESC
-		LIMIT 1
-	`)
-	setStatus, err = db.Prepare(request)
-	if err != nil {
-		log.Fatalf("DB setStatus preparation error: %v\n", err)
-		return
-	}
-
-	return
-}
-
-func Disconnect() {
-	storeRequest.Close()
-	updateRequestTemp.Close()
-	updateRequest.Close()
-	setStatus.Close()
-	db.Close()
-}
-
-func StoreRequest(p types.PaymentRequest) (lastId int64, err error) {
-	var result sql.Result
-	result, err = storeRequest.Exec(
+	err = execInTx(request,
 		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
 		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
 		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference,
 		p.Organization, p.IsVisual,
 	)
-	if err != nil {
-		fmt.Printf("DB StoreRequest Error: %v\n", err)
-		return
-	}
-	lastId, err = result.LastInsertId()
-	if err != nil {
-		fmt.Printf("DB StoreRequest LastInsertId Error: %v\n", err)
-		return
-	}
 	return
 }
 
 func SetStatus(userKey string, value string) {
-	_, err := setStatus.Exec(value, userKey)
-	if err != nil {
-		fmt.Printf("DB SetStatus Error: %v\n", err)
-	}
+	fmt.Println("STATUS of ", userKey, " to ", value)
+	request := heredoc.Doc(`
+		UPDATE bb_ext_requests SET status = ?, pstatus = ? 
+		WHERE user_key = ?
+		ORDER BY id DESC
+		LIMIT 1
+	`)
+
+	execInTx(request, value, value, userKey)
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
@@ -261,17 +195,36 @@ func Confirm(p *types.ConfirmRequest) bool {
 }
 
 func UpdateRequestTemp(userKey string, p types.PeleCardResponse) (err error) {
-	_, err = updateRequestTemp.Exec(
+	request := heredoc.Doc(`
+		INSERT INTO bb_ext_pelecard_responses (
+			user_key, pelecard_transaction_id, pelecard_status_code, confirmation_key, param_x
+		) VALUES (
+			?, ?, ?, ?, ?
+		)
+	`)
+
+	err = execInTx(request,
 		userKey,
 		p.PelecardTransactionId, p.PelecardStatusCode, p.ConfirmationKey, p.ParamX)
-	if err != nil {
-		fmt.Printf("DB UpdateRequestTemp Request Error: %v\n", err)
-	}
 	return
 }
 
 func UpdateRequest(p types.PaymentResponse) (err error) {
-	_, err = updateRequest.Exec(
+	request := heredoc.Doc(`
+		INSERT INTO bb_ext_payment_responses (
+			user_key,
+			transaction_id, card_hebrew_name, transaction_update_time, credit_card_abroad_card,
+			first_payment_total, credit_type, credit_card_brand, voucher_id, station_number,
+			additional_details_param_x, credit_card_company_issuer, debit_code, fixed_payment_total,
+			credit_card_number, credit_card_exp_date, credit_card_company_clearer, debit_total,
+			total_payments, debit_type, transaction_init_time, j_param, transaction_pelecard_id,
+			debit_currency
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`)
+
+	err = execInTx(request,
 		p.UserKey,
 		p.TransactionId, p.CardHebrewName, p.TransactionUpdateTime, p.CreditCardAbroadCard,
 		p.FirstPaymentTotal, p.CreditType, p.CreditCardBrand, p.VoucherId, p.StationNumber,
@@ -279,8 +232,27 @@ func UpdateRequest(p types.PaymentResponse) (err error) {
 		p.CreditCardNumber, p.CreditCardExpDate, p.CreditCardCompanyClearer,
 		p.DebitTotal, p.TotalPayments, p.DebitType, p.TransactionInitTime, p.JParam,
 		p.TransactionPelecardId, p.DebitCurrency)
+	return
+}
+
+func execInTx(query string, args ...interface{}) (err error) {
+	var er error
+	tx := db.MustBegin()
+	_, err = tx.Exec(query, args...)
 	if err != nil {
-		fmt.Printf("DB UpdateRequest Error: %v\n", err)
+		er = tx.Rollback()
+		if er != nil {
+			fmt.Println("Query:", query, "\nParams:", args)
+			fmt.Println("Query error:", err)
+			fmt.Println("Rollback error:", er)
+		}
+	} else {
+		er = tx.Commit()
+		if er != nil {
+			fmt.Println("Query:", query, "\nParams:", args)
+			fmt.Println("Query error:", err)
+			fmt.Println("Commit error:", er)
+		}
 	}
 	return
 }

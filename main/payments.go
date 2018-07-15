@@ -49,7 +49,7 @@ func NewPayment(c *gin.Context) {
 	}
 
 	// Store request into DB
-	if _, err = db.StoreRequest(request); err != nil {
+	if err = db.StoreRequest(request); err != nil {
 		onError("StoreRequest "+err.Error(), c)
 		return
 	}

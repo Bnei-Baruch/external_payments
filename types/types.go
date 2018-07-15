@@ -15,6 +15,7 @@ type PaymentRequest struct {
 	UserKey   string `json:"UserKey" form:"UserKey" db:"user_key" validate:"string,required"`
 	CreatedAt string `json:"-" db:"created_at"`
 	Status    string `json:"-" db:"status"`
+	PStatus   string `json:"-" db:"pstatus"`
 
 	// Part for Pelecard
 	GoodURL   string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
@@ -26,9 +27,9 @@ type PaymentRequest struct {
 	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float"`
 	Currency     string  `json:"Currency" form:"Currency" db:"currency" validate:"string,required,values=USD|EUR|NIS|ILS"`
 	Email        string  `json:"Email" form:"Email" db:"email" validate:"email,required"`
-	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string"`
-	Street       string  `json:"Street" form:"Street" db:"street" validate:"string,required"`
-	City         string  `json:"City" form:"City" db:"city" validate:"string,required"`
+	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string,required"`
+	Street       string  `json:"Street" form:"Street" db:"street" validate:"string"`
+	City         string  `json:"City" form:"City" db:"city" validate:"string"`
 	Country      string  `json:"Country" form:"Country" db:"country" validate:"string,required"`
 	Participans  string  `json:"Participants" form:"Participants" db:"participants" validate:"string"`
 	Details      string  `json:"Details" form:"Details" db:"details" validate:"string"`
