@@ -36,7 +36,7 @@ func initDB() (err error) {
 		street 			VARCHAR(255) NOT NULL,
 		city 			VARCHAR(255) NOT NULL,
 		country 		VARCHAR(255) NOT NULL,
-		details 		VARCHAR(255) NOT NULL,
+		details 		TEXT NOT NULL,
 		participants 	VARCHAR(255) NOT NULL,
 		sku			 	VARCHAR(255) NOT NULL,
 		vat				VARCHAR(1) NOT NULL,
