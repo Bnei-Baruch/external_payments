@@ -60,7 +60,7 @@ func (p *PeleCard) Init() (err error) {
 		return
 	}
 
-	p.LogoUrl = "http://www.kab.co.il/images/hebmain/logo1.png"
+	p.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
 	p.MinPayments = 1
 
 	return
