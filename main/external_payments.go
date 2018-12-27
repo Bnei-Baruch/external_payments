@@ -1,6 +1,7 @@
 // once: go mod init external_payments
 // go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_projects/bbpriority/
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
+
 package main
 
 import (
