@@ -4,7 +4,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"os"
 	"log"
-	"github.com/gshilin/external_payments/types"
+	"external_payments/types"
 	"github.com/MakeNowJust/heredoc"
 	"github.com/jmoiron/sqlx"
 	"fmt"

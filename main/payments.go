@@ -9,9 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-querystring/query"
 
-	"github.com/gshilin/external_payments/db"
-	"github.com/gshilin/external_payments/pelecard"
-	"github.com/gshilin/external_payments/types"
+	"external_payments/db"
+	"external_payments/pelecard"
+	"external_payments/types"
 	"runtime/debug"
 )
 

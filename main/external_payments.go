@@ -1,17 +1,18 @@
+// once: go mod init external_payments
 // go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_projects/bbpriority/
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 package main
 
 import (
+	_ "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
-	_ "github.com/gin-contrib/cors"
 	_ "github.com/joho/godotenv/autoload"
 
-	"os"
-	"github.com/gshilin/external_payments/db"
-	"log"
+	"external_payments/db"
 	"fmt"
+	"log"
+	"os"
 )
 
 func main() {
