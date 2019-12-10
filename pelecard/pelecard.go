@@ -50,10 +50,10 @@ type PeleCard struct {
 	TotalX100       string `json:",omitempty"`
 }
 
-func (p *PeleCard) Init() (err error) {
-	p.User = os.Getenv("PELECARD_USER")
-	p.Password = os.Getenv("PELECARD_PASSWORD")
-	p.Terminal = os.Getenv("PELECARD_TERMINAL")
+func (p *PeleCard) Init(organization string) (err error) {
+	p.User = os.Getenv(organization + "_PELECARD_USER")
+	p.Password = os.Getenv(organization + "_PELECARD_PASSWORD")
+	p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL")
 	p.Url = os.Getenv("PELECARD_URL")
 	if p.User == "" || p.Password == "" || p.Terminal == "" || p.Url == "" {
 		err = fmt.Errorf("PELECARD parameters are missing")

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"runtime/debug"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +13,6 @@ import (
 	"external_payments/db"
 	"external_payments/pelecard"
 	"external_payments/types"
-	"runtime/debug"
 )
 
 func ConfirmPayment(c *gin.Context) {
@@ -26,11 +26,13 @@ func ConfirmPayment(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+	var message []byte
 	if db.Confirm(&request) {
-		c.Writer.Write([]byte("status=SUCCESS"))
+		message = []byte("status=SUCCESS")
 	} else {
-		c.Writer.Write([]byte("status=FAILURE"))
+		message = []byte("status=FAILURE")
 	}
+	_, _ = c.Writer.Write(message)
 }
 
 func NewPayment(c *gin.Context) {
@@ -74,22 +76,37 @@ func NewPayment(c *gin.Context) {
 		GoodUrl:     goodUrl,
 		ErrorUrl:    errorUrl,
 		CancelUrl:   cancelUrl,
-		Total:       int(request.Price * 100.00),
+		Total:       int(float32(request.Price) * 100.00),
 		Currency:    currency,
 		MaxPayments: request.Installments,
 	}
-	if request.Language == "HE" {
-		card.TopText = "BB כרטיסי אשראי"
-		card.BottomText = "© בני ברוך קבלה לעם"
-	} else if request.Language == "RU" {
-		card.TopText = "Бней Барух Каббала лаАм"
-		card.BottomText = "© Бней Барух Каббала лаАм"
-	} else {
-		card.TopText = "BB Credit Cards"
-		card.BottomText = "© Bnei Baruch Kabbalah laAm"
+	if request.Organization == "ben2" {
+		if request.Language == "HE" {
+			card.TopText = "BB כרטיסי אשראי"
+			card.BottomText = "© בני ברוך קבלה לעם"
+		} else if request.Language == "RU" {
+			card.TopText = "Бней Барух Каббала лаАм"
+			card.BottomText = "© Бней Барух Каббала лаАм"
+		} else {
+			card.TopText = "BB Credit Cards"
+			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+		}
+		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
+	} else if request.Organization == "meshp18" {
+		if request.Language == "HE" {
+			card.TopText = "משפחה בחיבור כרטיסי אשראי"
+			card.BottomText = "© משפחה בחיבור"
+		} else if request.Language == "RU" {
+			card.TopText = "Бней Барух Каббала лаАм"
+			card.BottomText = "© Бней Барух Каббала лаАм"
+		} else {
+			card.TopText = "BB Credit Cards"
+			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+		}
+		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	}
 
-	if err = card.Init(); err != nil {
+	if err = card.Init(request.Organization); err != nil {
 		onError("Init"+err.Error(), c)
 		return
 	}
@@ -122,10 +139,16 @@ func GoodPayment(c *gin.Context) {
 	}
 
 	db.SetStatus(form.UserKey, "in-process")
+	// bb_ext_requests
+	org, err := db.GetOrganization(form.UserKey)
+	if err != nil {
+		onError("Init"+err.Error(), c)
+		return
+	}
 
 	// approve params
 	card := &pelecard.PeleCard{}
-	if err := card.Init(); err != nil {
+	if err := card.Init(org); err != nil {
 		onError("Init"+err.Error(), c)
 		return
 	}
@@ -138,7 +161,7 @@ func GoodPayment(c *gin.Context) {
 
 	var response = types.PaymentResponse{}
 	body, _ := json.Marshal(msg)
-	json.Unmarshal(body, &response)
+	_ = json.Unmarshal(body, &response)
 	response.UserKey = form.UserKey
 	// update DB
 	if err = db.UpdateRequest(response); err != nil {
@@ -152,7 +175,7 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	if err := card.Init(); err != nil {
+	if err := card.Init(request.Organization); err != nil {
 		onError("Init "+err.Error(), c)
 		return
 	}
@@ -215,11 +238,11 @@ func CancelPayment(c *gin.Context) {
 
 func onError(err string, c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Write([]byte("<html><body><h1 style='color: red;'>Error <code>"))
-	c.Writer.Write([]byte(err))
-	c.Writer.Write([]byte("</code></h1><br><pre>"))
-	c.Writer.Write(debug.Stack())
-	c.Writer.Write([]byte("</pre></body></html>"))
+	_, _ = c.Writer.Write([]byte("<html><body><h1 style='color: red;'>Error <code>"))
+	_, _ = c.Writer.Write([]byte(err))
+	_, _ = c.Writer.Write([]byte("</code></h1><br><pre>"))
+	_, _ = c.Writer.Write(debug.Stack())
+	_, _ = c.Writer.Write([]byte("</pre></body></html>"))
 }
 
 func onRedirect(url string, msg string, c *gin.Context) {
@@ -238,7 +261,7 @@ func onRedirect(url string, msg string, c *gin.Context) {
 	}
 	html := "<script>window.location = '" + target + "';</script>"
 	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Write([]byte(html))
+	_, _ = c.Writer.Write([]byte(html))
 }
 
 func onSuccess(url string, msg string, c *gin.Context) {
@@ -253,9 +276,10 @@ func onSuccess(url string, msg string, c *gin.Context) {
 			q = "?"
 		}
 
-		target = fmt.Sprintf("%s%ssuccess=%s", url, q, msg)
+		target = fmt.Sprintf("%s%ssuccess=1&%s", url, q, msg)
 	}
 	html := "<script>window.location = '" + target + "';</script>"
 	c.Writer.WriteHeader(http.StatusOK)
-	c.Writer.Write([]byte(html))
+	fmt.Println("onSuccess -> " + target)
+	_, _ = c.Writer.Write([]byte(html))
 }

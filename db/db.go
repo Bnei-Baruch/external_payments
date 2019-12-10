@@ -1,13 +1,15 @@
 package db
 
 import (
-	_ "github.com/go-sql-driver/mysql"
-	"os"
-	"log"
-	"external_payments/types"
-	"github.com/MakeNowJust/heredoc"
-	"github.com/jmoiron/sqlx"
 	"fmt"
+	"log"
+	"os"
+
+	"github.com/MakeNowJust/heredoc"
+	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
+
+	"external_payments/types"
 )
 
 var (
@@ -18,6 +20,32 @@ const numOfUpdates = 20
 
 func initDB() (err error) {
 	schemas := []string{
+		heredoc.Doc(`
+	CREATE TABLE IF NOT EXISTS bb_ext_paypal (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		
+		name 			VARCHAR(255) NOT NULL,
+		price 			REAL NOT NULL,
+		currency 		VARCHAR(255) NOT NULL,
+		email 			VARCHAR(255) NOT NULL,
+		phone 			VARCHAR(255) NOT NULL,
+		street 			VARCHAR(255) NOT NULL,
+		city 			VARCHAR(255) NOT NULL,
+		country 		VARCHAR(255) NOT NULL,
+		details 		TEXT NOT NULL,
+		sku			 	VARCHAR(255) NOT NULL,
+		language 		VARCHAR(2) NOT NULL,
+		reference 		VARCHAR(20) NOT NULL,
+		organization 	TEXT NOT NULL,
+		transaction_id 	VARCHAR(255),
+		payment_date 	VARCHAR(255),
+		voucher_id 		VARCHAR(255),
+		invoice 		VARCHAR(255),
+
+		status			VARCHAR(255) NOT NULL DEFAULT 'new',
+
+		created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+	) engine=InnoDB default charset utf8;`),
 		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS bb_ext_requests (
 		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
@@ -105,7 +133,6 @@ func Connect() (err error) {
 	user := os.Getenv("CIVI_USER")
 	if user == "" {
 		log.Fatalf("Unable to connect without username\n")
-		os.Exit(2)
 	}
 	password := os.Getenv("CIVI_PASSWORD")
 	if password == "" {
@@ -139,7 +166,29 @@ func Connect() (err error) {
 }
 
 func Disconnect() {
-	db.Close()
+	_ = db.Close()
+}
+
+func StorePaypal(p types.PaypalRegister) {
+	request := heredoc.Doc(`
+		INSERT INTO bb_ext_paypal (
+			name, price, currency, email, phone, street, city, country, details, sku, language, 
+			reference, organization, transaction_id, payment_date, voucher_id, invoice
+		) VALUES (
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+		)
+	`)
+	err := execInTx(request,
+		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
+		p.Details, p.SKU, p.Language, p.Reference, p.Organization,
+		p.TransactionId, p.PaymentDate, p.VoucherId, p.Invoice,
+	)
+
+	if err != nil {
+		fmt.Print("\n", err)
+	}
+
+	return
 }
 
 func StoreRequest(p types.PaymentRequest) (err error) {
@@ -172,11 +221,23 @@ func SetStatus(userKey string, value string) {
 		LIMIT 1
 	`)
 
-	execInTx(request, value, value, userKey)
+	_ = execInTx(request, value, value, userKey)
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
 	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
+	return
+}
+
+func GetOrganization(userKey string) (org string, err error) {
+	err = db.Get(&org,
+		heredoc.Doc(`
+			SELECT organization 
+			FROM bb_ext_requests 
+			WHERE user_key = ?
+            ORDER BY id DESC
+			LIMIT 1
+		`), userKey)
 	return
 }
 
@@ -189,6 +250,8 @@ func Confirm(p *types.ConfirmRequest) bool {
 			WHERE status = 'valid' AND user_key = ? AND price = ? 
 				  AND currency = ? AND sku = ? AND reference = ? 
 				  AND organization = ?
+            ORDER BY id DESC
+			LIMIT 1
 		`),
 		p.UserKey, p.Price, p.Currency, p.SKU, p.Reference, p.Organization)
 	return err == nil

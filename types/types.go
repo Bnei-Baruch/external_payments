@@ -1,5 +1,28 @@
 package types
 
+type PaypalRegister struct {
+	Id uint64 `json:"-" sql:"id,omitempty"`
+
+	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
+	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float"`
+	Currency     string  `json:"Currency" form:"Currency" db:"currency" validate:"string,required,values=USD|EUR|NIS|ILS"`
+	Email        string  `json:"Email" form:"Email" db:"email" validate:"email,required"`
+	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string,required"`
+	Street       string  `json:"Street" form:"Street" db:"street" validate:"string"`
+	City         string  `json:"City" form:"City" db:"city" validate:"string"`
+	Country      string  `json:"Country" form:"Country" db:"country" validate:"string,required"`
+	Details      string  `json:"Details" form:"Details" db:"details" validate:"string"`
+	SKU          string  `json:"SKU" form:"SKU" db:"sku" validate:"string,required"`
+	Language     string  `json:"Language" form:"Language" db:"language" validate:"string,required,values=EN|HE|RU"`
+	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
+	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2|meshp18"`
+
+	TransactionId string `db:"transaction_id" url:"transaction_id"`
+	PaymentDate   string `db:"payment_date" url:"payment_date"`
+	VoucherId     string `db:"voucher_id" url:"voucher_id"`
+	Invoice       string `db:"invoice" url:"invoice"`
+}
+
 type ConfirmRequest struct {
 	UserKey      string  `json:"UserKey"`
 	Price        float64 `json:"Price"`
@@ -38,7 +61,7 @@ type PaymentRequest struct {
 	Installments int     `json:"Installments" form:"Installments" db:"installments" validate:"number,min=1,max=12"`
 	Language     string  `json:"Language" form:"Language" db:"language" validate:"string,required,values=EN|HE|RU"`
 	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
-	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2"`
+	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2|meshp18"`
 	IsVisual     bool    `json:"IsVisual" form:"IsVisual" db:"is_visual"`
 }
 

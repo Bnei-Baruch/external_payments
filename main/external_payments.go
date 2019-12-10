@@ -1,5 +1,5 @@
 // once: go mod init external_payments
-// go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_projects/bbpriority/
+// go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_D_DRIVE/projects/bbpriority/
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 
 package main
@@ -30,7 +30,7 @@ func main() {
 		port = ":8080"
 	}
 
-	db.Connect()
+	_ = db.Connect()
 	defer db.Disconnect()
 
 	r := gin.Default()
@@ -56,6 +56,12 @@ func router(r *gin.Engine) {
 		payments.POST("/cancel", CancelPayment)
 		payments.GET("/confirm", ConfirmPayment)
 		payments.POST("/confirm", ConfirmPayment)
+	}
+
+	paypal := r.Group("/paypal")
+	{
+		paypal.GET("/confirm", ConfirmPaypal)
+		paypal.POST("/confirm", ConfirmPaypal)
 	}
 }
 
