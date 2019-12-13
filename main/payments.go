@@ -68,6 +68,8 @@ func NewPayment(c *gin.Context) {
 	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/error")
 	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/cancel")
 
+	total := int(float32(request.Price) * 100.00)
+
 	// Request Pelecard
 	card := &pelecard.PeleCard{
 		Language:    request.Language,
@@ -76,7 +78,7 @@ func NewPayment(c *gin.Context) {
 		GoodUrl:     goodUrl,
 		ErrorUrl:    errorUrl,
 		CancelUrl:   cancelUrl,
-		Total:       int(float32(request.Price) * 100.00),
+		Total:       total,
 		Currency:    currency,
 		MaxPayments: request.Installments,
 	}
@@ -92,6 +94,8 @@ func NewPayment(c *gin.Context) {
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 		}
 		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
+		card.MinPayments = 1
+		card.MaxPayments = 1
 	} else if request.Organization == "meshp18" {
 		if request.Language == "HE" {
 			card.TopText = "משפחה בחיבור כרטיסי אשראי"
@@ -102,6 +106,16 @@ func NewPayment(c *gin.Context) {
 		} else {
 			card.TopText = "BB Credit Cards"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+		}
+		card.MinPayments = 1
+		total = total / 100
+		if total < 100 {
+			card.MaxPayments = 1
+		} else {
+			card.MaxPayments = total / 500 + 2
+		}
+		if card.MaxPayments > 10 {
+			card.MaxPayments = 10
 		}
 		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	}

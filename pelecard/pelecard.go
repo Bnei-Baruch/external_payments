@@ -60,8 +60,6 @@ func (p *PeleCard) Init(organization string) (err error) {
 		return
 	}
 
-	p.MinPayments = 1
-
 	return
 }
 
