@@ -5,15 +5,16 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
+
 	_ "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
 
 	"external_payments/db"
-	"fmt"
-	"log"
-	"os"
 )
 
 func main() {

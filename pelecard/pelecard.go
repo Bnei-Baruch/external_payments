@@ -1,12 +1,12 @@
 package pelecard
 
 import (
-	"os"
-	"fmt"
-	"encoding/json"
-	"net/http"
 	"bytes"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"net/http"
+	"os"
 )
 
 type PeleCard struct {
@@ -45,9 +45,10 @@ type PeleCard struct {
 	HiddenPelecardLogo         bool            `json:",omitempty"`
 	SupportedCards             map[string]bool `json:",omitempty"`
 
-	TransactionId   string `json:",omitempty"`
-	ConfirmationKey string `json:",omitempty"`
-	TotalX100       string `json:",omitempty"`
+	CaptionSet      map[string]string `json:",omitempty"`
+	TransactionId   string            `json:",omitempty"`
+	ConfirmationKey string            `json:",omitempty"`
+	TotalX100       string            `json:",omitempty"`
 }
 
 func (p *PeleCard) Init(organization string) (err error) {

@@ -83,19 +83,41 @@ func NewPayment(c *gin.Context) {
 		MaxPayments: request.Installments,
 	}
 	if request.Organization == "ben2" {
+		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
+		card.MinPayments = 1
+		card.MaxPayments = 1
 		if request.Language == "HE" {
 			card.TopText = "BB כרטיסי אשראי"
 			card.BottomText = "© בני ברוך קבלה לעם"
 		} else if request.Language == "RU" {
+			card.LogoUrl = "https://checkout.kabbalah.info/kabRu.jpeg"
 			card.TopText = "Бней Барух Каббала лаАм"
 			card.BottomText = "© Бней Барух Каббала лаАм"
+		} else if request.Language == "ES" {
+			card.TopText = "Bnei Baruch Kabbalah laAm"
+			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+			card.Language = "EN"
+			card.LogoUrl = "https://checkout.kabbalah.info/logoEs.gif"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_header_payment"] = "Pago con tarjeta de crédito"
+			card.CaptionSet["cs_header_registeration"] = "Registro con tarjeta de crédito"
+			card.CaptionSet["cs_holdername"] = "Nombre en la tarjeta"
+			card.CaptionSet["cs_cardnumber"] = "Número de tarjeta de crédito"
+			card.CaptionSet["cs_expiration"] = "Fecha de expiración"
+			card.CaptionSet["cs_id"] = "Pasaporte"
+			card.CaptionSet["cs_cvv"] = "CW"
+			card.CaptionSet["cs_payments"] = "Número de pagos"
+			card.CaptionSet["cs_xparam"] = "Detalles adicionales"
+			card.CaptionSet["cs_total"] = "Total"
+			card.CaptionSet["cs_supported_cards"] = "Tarjetas aceptadas como pago en este sitio web"
+			card.CaptionSet["cs_mustfields"] = "Campos obligatorios"
+			card.CaptionSet["cs_submit"] = "Pagar ahora"
+			card.CaptionSet["cs_cancel"] = "Cancelar"
 		} else {
+			card.Language = "EN"
 			card.TopText = "BB Credit Cards"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 		}
-		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
-		card.MinPayments = 1
-		card.MaxPayments = 1
 	} else if request.Organization == "meshp18" {
 		if request.Language == "HE" {
 			card.TopText = "משפחה בחיבור כרטיסי אשראי"
@@ -112,7 +134,7 @@ func NewPayment(c *gin.Context) {
 		if total < 100 {
 			card.MaxPayments = 1
 		} else {
-			card.MaxPayments = total / 500 + 2
+			card.MaxPayments = total/500 + 2
 		}
 		if card.MaxPayments > 10 {
 			card.MaxPayments = 10
