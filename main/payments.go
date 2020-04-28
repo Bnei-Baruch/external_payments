@@ -97,7 +97,7 @@ func NewPayment(c *gin.Context) {
 			card.TopText = "Bnei Baruch Kabbalah laAm"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 			card.Language = "EN"
-			card.LogoUrl = "https://checkout.kabbalah.info/logoEs.gif"
+			card.LogoUrl = "http://cabalacentroestudios.com/wp-content/uploads/2020/04/BB_logo_es.jpg"
 			card.CaptionSet = make(map[string]string)
 			card.CaptionSet["cs_header_payment"] = "Pago con tarjeta de crédito"
 			card.CaptionSet["cs_header_registeration"] = "Registro con tarjeta de crédito"
