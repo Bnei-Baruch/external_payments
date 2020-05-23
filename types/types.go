@@ -1,5 +1,12 @@
 package types
 
+type PelecardType string
+
+var (
+	Regular   PelecardType = "Regular"
+	Recurrent PelecardType = "Recurrent"
+)
+
 type PaypalRegister struct {
 	Id uint64 `json:"-" sql:"id,omitempty"`
 
@@ -41,9 +48,11 @@ type PaymentRequest struct {
 	PStatus   string `json:"-" db:"pstatus"`
 
 	// Part for Pelecard
-	GoodURL   string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
-	ErrorURL  string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
-	CancelURL string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
+	GoodURL    string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
+	ErrorURL   string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
+	CancelURL  string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
+	ApprovalNo string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
+	Token      string `json:"Token" form:"Token" db:"-"`
 
 	// Part for Priority
 	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
@@ -70,6 +79,8 @@ type PeleCardResponse struct {
 	PelecardTransactionId string `db:"pelecard_transaction_id"`
 	PelecardStatusCode    string `db:"pelecard_status_code"`
 	ConfirmationKey       string `db:"confirmation_key"`
+	Token                 string `db:"token"`
+	ApprovalNo            string `db:"approval_no"`
 	ParamX                string `db:"param_x"`
 }
 

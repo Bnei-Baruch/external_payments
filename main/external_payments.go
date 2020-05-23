@@ -15,6 +15,8 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 
 	"external_payments/db"
+	"external_payments/payment"
+	"external_payments/token"
 )
 
 func main() {
@@ -50,13 +52,27 @@ func router(r *gin.Engine) {
 	// Request for payment
 	payments := r.Group("/payments")
 	{
-		payments.GET("/new", NewPayment)
-		payments.POST("/new", NewPayment)
-		payments.POST("/good", GoodPayment)
-		payments.POST("/error", ErrorPayment)
-		payments.POST("/cancel", CancelPayment)
-		payments.GET("/confirm", ConfirmPayment)
-		payments.POST("/confirm", ConfirmPayment)
+		// regular payment
+		payments.GET("/new", payment.NewPayment)
+		payments.POST("/new", payment.NewPayment)
+		payments.POST("/good", payment.GoodPayment)
+		payments.POST("/error", payment.ErrorPayment)
+		payments.POST("/cancel", payment.CancelPayment)
+		payments.GET("/confirm", payment.ConfirmPayment)
+		payments.POST("/confirm", payment.ConfirmPayment)
+	}
+	withToken := r.Group("/token")
+	{
+		// recurrent payments with token
+		withToken.GET("/new", token.NewPayment)
+		withToken.POST("/new", token.NewPayment)
+		withToken.POST("/good", token.GoodPayment)
+		withToken.POST("/error", token.ErrorPayment)
+		withToken.POST("/cancel", token.CancelPayment)
+		withToken.GET("/confirm", token.ConfirmPayment)
+		withToken.POST("/confirm", token.ConfirmPayment)
+		withToken.GET("/charge", token.Charge)
+		withToken.POST("/charge", token.Charge)
 	}
 
 	paypal := r.Group("/paypal")

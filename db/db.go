@@ -213,7 +213,6 @@ func StoreRequest(p types.PaymentRequest) (err error) {
 }
 
 func SetStatus(userKey string, value string) {
-	fmt.Println("STATUS of ", userKey, " to ", value)
 	request := heredoc.Doc(`
 		UPDATE bb_ext_requests SET status = ?, pstatus = ? 
 		WHERE user_key = ?

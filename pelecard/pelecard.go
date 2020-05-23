@@ -7,10 +7,13 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+
+	"external_payments/types"
 )
 
 type PeleCard struct {
-	Url string `json:"-"`
+	Url     string `json:"-"`
+	Service string `json:"-"`
 
 	User     string `json:"user"`
 	Password string `json:"password"`
@@ -33,6 +36,9 @@ type PeleCard struct {
 	MaxPayments int `json:",omitempty"`
 
 	ActionType                 string          `json:",omitempty"`
+	CreateToken                string          `json:",omitempty"`
+	Token                      string          `json:",omitempty"`
+	AuthorizationNumber        string          `json:",omitempty"`
 	CardHolderName             string          `json:",omitempty"`
 	CustomerIdField            string          `json:",omitempty"`
 	Cvv2Field                  string          `json:",omitempty"`
@@ -51,13 +57,31 @@ type PeleCard struct {
 	TotalX100       string            `json:",omitempty"`
 }
 
-func (p *PeleCard) Init(organization string) (err error) {
+type PelecardService struct {
+	TerminalNumber      string
+	User                string
+	Password            string
+	ShopNumber          string
+	Token               string
+	Total               string
+	Currency            int
+	AuthorizationNumber string
+	ParamX              string
+}
+
+func (p *PeleCard) Init(organization string, peleCard types.PelecardType) (err error) {
 	p.User = os.Getenv(organization + "_PELECARD_USER")
 	p.Password = os.Getenv(organization + "_PELECARD_PASSWORD")
-	p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL")
+	if peleCard == types.Regular {
+		p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL")
+	} else {
+		p.Terminal = os.Getenv("PELECARD_RECURR_TERMINAL")
+	}
+	p.Service = os.Getenv("PELECARD_SERVICE_URL")
 	p.Url = os.Getenv("PELECARD_URL")
-	if p.User == "" || p.Password == "" || p.Terminal == "" || p.Url == "" {
-		err = fmt.Errorf("PELECARD parameters are missing")
+	if p.User == "" || p.Password == "" || p.Terminal == "" ||
+		(p.Url == "" && p.Service == "") {
+		err = fmt.Errorf("PELECARD parameters are missing %+v", p)
 		return
 	}
 
@@ -67,15 +91,18 @@ func (p *PeleCard) Init(organization string) (err error) {
 func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[string]interface{}) {
 
 	p.TransactionId = transactionId
-	if err, msg = p.connect("/GetTransaction"); err != nil {
-		return
-	}
+	err, msg = p.connect("/GetTransaction")
 
 	return
 }
 
-func (p *PeleCard) GetRedirectUrl() (err error, url string) {
-	p.ActionType = "J4"
+func (p *PeleCard) GetRedirectUrl(withToken bool) (err error, url string) {
+	if withToken {
+		p.ActionType = "J5" // Approved Transaction -- DebitApproveNumber
+		p.CreateToken = "True"
+	} else {
+		p.ActionType = "J4"
+	}
 	p.CardHolderName = "hide"
 	p.CustomerIdField = "hide"
 	p.Cvv2Field = "must"
@@ -93,6 +120,22 @@ func (p *PeleCard) GetRedirectUrl() (err error, url string) {
 		return
 	}
 	url = result["URL"].(string)
+	return
+}
+
+func (p *PeleCard) ChargeByToken() (err error, result map[string]interface{}) {
+	s := &PelecardService{
+		TerminalNumber:      p.Terminal,
+		User:                p.User,
+		Password:            p.Password,
+		ShopNumber:          "1000",
+		Token:               p.Token,
+		Total:               p.TotalX100,
+		Currency:            p.Currency,
+		AuthorizationNumber: p.AuthorizationNumber,
+		ParamX:              p.ParamX,
+	}
+	err, result = p.services("/DebitRegularType", s)
 	return
 }
 
@@ -133,6 +176,45 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 	if bodyString == "1" {
 		valid = true
 	}
+	return
+}
+
+func (p *PeleCard) services(action string, data *PelecardService) (err error, result map[string]interface{}) {
+	params, _ := json.Marshal(*data)
+	url := p.Service + action
+
+	//errLogger := gin.DefaultErrorWriter
+	//var msg string
+	//msg = fmt.Sprintf("=============> POST: %s\n%s\n", url, params)
+	//_, _ = errLogger.Write([]byte(msg))
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var body map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&body)
+	if status, ok := body["StatusCode"]; ok {
+		if status == "000" {
+			err = nil
+			result = body["ResultData"].(map[string]interface{})
+		} else {
+			if msg, ok := body["ErrorMessage"]; ok {
+				msg := msg.(map[string]interface{})
+				if errCode, ok := msg["ErrCode"]; ok {
+					if errCode.(float64) > 0 {
+						err = fmt.Errorf("%d: %s", int(errCode.(float64)), msg["ErrMsg"])
+					}
+				} else {
+					err = fmt.Errorf("0: %s", msg["ErrMsg"])
+				}
+			} else {
+				err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
+			}
+		}
+	}
+
 	return
 }
 

@@ -1,10 +1,10 @@
-package main
+package validation
 
 import (
-	"regexp"
 	"fmt"
-	"strings"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 const tagName = "validate" // Name of the struct tag used for validation
@@ -17,7 +17,7 @@ type Validator interface {
 	Validate(interface{}) (bool, error)
 }
 
-// DefaultValidator does not perform any validations
+// DefaultValidator does not perform any validation
 type DefaultValidator struct {
 }
 
@@ -165,7 +165,7 @@ func getValidatorFromTag(tag string) Validator {
 //================================================
 
 // Performs actual data validation using validator definitions on the struct
-func validateStruct(s interface{}) (found bool, errs []string) {
+func ValidateStruct(s interface{}) (found bool, errs []string) {
 
 	found = false
 
