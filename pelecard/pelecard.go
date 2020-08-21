@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
+
 	"external_payments/types"
 )
 
@@ -183,10 +185,10 @@ func (p *PeleCard) services(action string, data *PelecardService) (err error, re
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
-	//errLogger := gin.DefaultErrorWriter
-	//var msg string
-	//msg = fmt.Sprintf("=============> POST: %s\n%s\n", url, params)
-	//_, _ = errLogger.Write([]byte(msg))
+	errLogger := gin.DefaultErrorWriter
+	var msg string
+	msg = fmt.Sprintf("=============> POST: %s\n%s\n", url, params)
+	_, _ = errLogger.Write([]byte(msg))
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
@@ -201,14 +203,7 @@ func (p *PeleCard) services(action string, data *PelecardService) (err error, re
 			result = body["ResultData"].(map[string]interface{})
 		} else {
 			if msg, ok := body["ErrorMessage"]; ok {
-				msg := msg.(map[string]interface{})
-				if errCode, ok := msg["ErrCode"]; ok {
-					if errCode.(float64) > 0 {
-						err = fmt.Errorf("%d: %s", int(errCode.(float64)), msg["ErrMsg"])
-					}
-				} else {
-					err = fmt.Errorf("0: %s", msg["ErrMsg"])
-				}
+				err = fmt.Errorf("0: %s", msg)
 			} else {
 				err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 			}
