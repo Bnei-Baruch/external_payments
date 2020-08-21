@@ -73,6 +73,7 @@ func router(r *gin.Engine) {
 		withToken.POST("/confirm", token.ConfirmPayment)
 		withToken.GET("/charge", token.Charge)
 		withToken.POST("/charge", token.Charge)
+		withToken.POST("/refund", token.Refund)
 	}
 
 	paypal := r.Group("/paypal")
