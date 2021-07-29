@@ -67,7 +67,7 @@ type PelecardService struct {
 	Token               string
 	Total               string
 	Currency            int
-	AuthorizationNumber string
+	AuthorizationNumber string `json:",omitempty"`
 	ParamX              string
 }
 
@@ -138,6 +138,21 @@ func (p *PeleCard) ChargeByToken() (err error, result map[string]interface{}) {
 		ParamX:              p.ParamX,
 	}
 	err, result = p.services("/DebitRegularType", s)
+	return
+}
+
+func (p *PeleCard) AuthorizeCreditCard() (err error, result map[string]interface{}) {
+	s := &PelecardService{
+		TerminalNumber: os.Getenv("PELECARD_RECURR_TERMINAL"),
+		User:           p.User,
+		Password:       p.Password,
+		ShopNumber:     "1000",
+		Token:          p.Token,
+		Total:          "100",
+		Currency:       1,
+		ParamX:         p.ParamX,
+	}
+	err, result = p.services("/AuthorizeCreditCard", s)
 	return
 }
 
