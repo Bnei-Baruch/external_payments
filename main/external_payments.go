@@ -74,6 +74,7 @@ func router(r *gin.Engine) {
 		withToken.GET("/charge", token.Charge)
 		withToken.POST("/charge", token.Charge)
 		withToken.POST("/refund", token.Refund)
+		withToken.POST("/authorize", token.AuthorizeCC)
 	}
 
 	paypal := r.Group("/paypal")

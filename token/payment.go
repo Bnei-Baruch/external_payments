@@ -322,6 +322,54 @@ func GoodPayment(c *gin.Context) {
 	OnSuccess(request.GoodURL, v.Encode(), card.Token, card.AuthorizationNumber, c)
 }
 
+func AuthorizeCC(c *gin.Context) {
+	var err error
+	var request struct {
+		Token     string `json:"token"`
+		Reference string `json:"paramX"`
+	}
+
+	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
+			m := fmt.Sprintf("Charge: %s", err.Error())
+			logMessage(m)
+			ErrorJson("Charge Bind "+err.Error(), c)
+			return
+		}
+	}
+
+	m := fmt.Sprintf("AuthorizeCC: %+v", request)
+	logMessage(m)
+
+	card := &pelecard.PeleCard{
+		Token:               request.Token,
+		TotalX100:           "100",
+		Currency:            1,
+		ParamX:              request.Reference,
+	}
+	if err = card.Init("ben2", types.Regular); err != nil {
+		m := fmt.Sprintf("AuthorizeCC: pelecard init %s", err.Error())
+		logMessage(m)
+
+		ErrorJson("AuthorizeCC PeleCard Init: "+err.Error(), c)
+		return
+	}
+	var msg map[string]interface{}
+	result := map[string]string{}
+
+	if err, msg = card.AuthorizeCreditCard(); err != nil {
+		m = fmt.Sprintf("AuthorizeCC: AuthorizeCC GOT %#v", msg)
+		logMessage(m)
+		m = fmt.Sprintf("AuthorizeCC: AuthorizeCC Error %s", err.Error())
+		logMessage(m)
+
+		ErrorJson(m, c)
+		return
+	}
+	result["ApprovalNo"] = msg["DebitApproveNumber"].(string)
+	ResultJson(result, c)
+}
+
 func Charge(c *gin.Context) {
 	var err error
 
@@ -363,7 +411,7 @@ func Charge(c *gin.Context) {
 		AuthorizationNumber: request.ApprovalNo,
 		ParamX:              request.Reference,
 	}
-	if err = card.Init(request.Organization, types.Regular); err != nil {
+	if err = card.Init(request.Organization, types.Recurrent); err != nil {
 		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
 		logMessage(m)
 
@@ -398,7 +446,7 @@ func Charge(c *gin.Context) {
 	data, _ := json.Marshal(response)
 	var result = map[string]string{
 		"status": "success",
-		"data": string(data),
+		"data":   string(data),
 	}
 	ResultJson(result, c)
 }
