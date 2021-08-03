@@ -342,10 +342,10 @@ func AuthorizeCC(c *gin.Context) {
 	logMessage(m)
 
 	card := &pelecard.PeleCard{
-		Token:               request.Token,
-		TotalX100:           "100",
-		Currency:            1,
-		ParamX:              request.Reference,
+		Token:     request.Token,
+		TotalX100: "100",
+		Currency:  1,
+		ParamX:    request.Reference,
 	}
 	if err = card.Init("ben2", types.Regular); err != nil {
 		m := fmt.Sprintf("AuthorizeCC: pelecard init %s", err.Error())
@@ -368,6 +368,57 @@ func AuthorizeCC(c *gin.Context) {
 	}
 	result["ApprovalNo"] = msg["DebitApproveNumber"].(string)
 	ResultJson(result, c)
+}
+
+func AuthorizeCCX(c *gin.Context) {
+	var err error
+	var requests []struct {
+		Token     string `json:"token"`
+		Reference string `json:"paramX"`
+	}
+
+	if err = c.BindJSON(&requests); err != nil { // Bind by JSON (post)
+		if err = c.ShouldBind(&requests); err != nil { // Bind by Query String (get)
+			m := fmt.Sprintf("Charge: %s", err.Error())
+			logMessage(m)
+			ErrorJson("Charge Bind "+err.Error(), c)
+			return
+		}
+	}
+
+	var results []map[string]string
+
+	for _, request := range requests {
+		m := fmt.Sprintf("AuthorizeCC: %+v", requests)
+		logMessage(m)
+
+		card := &pelecard.PeleCard{
+			Token:     request.Token,
+			TotalX100: "100",
+			Currency:  1,
+			ParamX:    request.Reference,
+		}
+		if err = card.Init("ben2", types.Regular); err != nil {
+			m := fmt.Sprintf("AuthorizeCC: pelecard init %s", err.Error())
+			logMessage(m)
+			continue
+		}
+		var msg map[string]interface{}
+		result := map[string]string{}
+
+		if err, msg = card.AuthorizeCreditCard(); err != nil {
+			m = fmt.Sprintf("AuthorizeCC: AuthorizeCC GOT %#v", msg)
+			logMessage(m)
+			m = fmt.Sprintf("AuthorizeCC: AuthorizeCC Error %s", err.Error())
+			logMessage(m)
+
+			continue
+		}
+		result["ApprovalNo"] = msg["DebitApproveNumber"].(string)
+		result["ParamX"] = request.Reference
+		results = append(results, result)
+	}
+	ResultJsonArray(results, c)
 }
 
 func Charge(c *gin.Context) {
@@ -562,6 +613,12 @@ func OnSuccess(url string, msg string, token string, authNo string, c *gin.Conte
 }
 
 func ResultJson(msg map[string]string, c *gin.Context) {
+	js, _ := json.Marshal(msg)
+	c.Writer.WriteHeader(http.StatusOK)
+	_, _ = c.Writer.Write(js)
+}
+
+func ResultJsonArray(msg []map[string]string, c *gin.Context) {
 	js, _ := json.Marshal(msg)
 	c.Writer.WriteHeader(http.StatusOK)
 	_, _ = c.Writer.Write(js)

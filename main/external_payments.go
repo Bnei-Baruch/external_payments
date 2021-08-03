@@ -75,6 +75,7 @@ func router(r *gin.Engine) {
 		withToken.POST("/charge", token.Charge)
 		withToken.POST("/refund", token.Refund)
 		withToken.POST("/authorize", token.AuthorizeCC)
+		withToken.POST("/authorizex", token.AuthorizeCCX)
 	}
 
 	paypal := r.Group("/paypal")
@@ -82,6 +83,9 @@ func router(r *gin.Engine) {
 		paypal.GET("/confirm", ConfirmPaypal)
 		paypal.POST("/confirm", ConfirmPaypal)
 	}
+	//for _, route := range r.Routes() {
+	//	fmt.Println(route.Method, route.Path)
+	//}
 }
 
 func CORSMiddleware() gin.HandlerFunc {
