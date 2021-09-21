@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 
+	"external_payments/emv"
 	_ "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
@@ -73,8 +74,24 @@ func router(r *gin.Engine) {
 		withToken.POST("/confirm", token.ConfirmPayment)
 		withToken.GET("/charge", token.Charge)
 		withToken.POST("/charge", token.Charge)
+		withToken.POST("/chargex", token.ChargeX)
 		withToken.POST("/refund", token.Refund)
 		withToken.POST("/authorize", token.AuthorizeCC)
+		withToken.POST("/authorizex", token.AuthorizeCCX)
+		withToken.POST("/authorizerecurr", token.AuthorizeCCRecurr)
+	}
+	withEmv := r.Group("/emv")
+	{
+		// recurrent payments with token
+		withEmv.GET("/new", emv.NewPayment)
+		withEmv.POST("/new", emv.NewPayment)
+		withEmv.POST("/good", emv.GoodPayment)
+		withEmv.POST("/error", emv.ErrorPayment)
+		withEmv.POST("/cancel", emv.CancelPayment)
+		withEmv.GET("/confirm", emv.ConfirmPayment)
+		withEmv.POST("/confirm", emv.ConfirmPayment)
+		withEmv.GET("/charge", emv.Charge)
+		withEmv.POST("/charge", emv.Charge)
 	}
 
 	paypal := r.Group("/paypal")
@@ -82,6 +99,9 @@ func router(r *gin.Engine) {
 		paypal.GET("/confirm", ConfirmPaypal)
 		paypal.POST("/confirm", ConfirmPaypal)
 	}
+	//for _, route := range r.Routes() {
+	//	fmt.Println(route.Method, route.Path)
+	//}
 }
 
 func CORSMiddleware() gin.HandlerFunc {

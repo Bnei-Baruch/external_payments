@@ -1,4 +1,4 @@
-package token
+package emv
 
 import (
 	"encoding/json"
@@ -14,10 +14,6 @@ import (
 	"external_payments/types"
 	"external_payments/validation"
 )
-
-func Refund(c *gin.Context) {
-
-}
 
 func ConfirmPayment(c *gin.Context) {
 	var err error
@@ -76,9 +72,9 @@ func NewPayment(c *gin.Context) {
 		currency = 978
 	}
 
-	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/token/good")
-	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/token/error")
-	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/token/cancel")
+	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/good")
+	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/error")
+	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/cancel")
 
 	total := int(float32(request.Price) * 100.00)
 
@@ -109,7 +105,7 @@ func NewPayment(c *gin.Context) {
 			card.TopText = "Bnei Baruch Kabbalah laAm"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 			card.Language = "EN"
-			card.LogoUrl = "http://cabalacentroestudios.com/wp-content/uploads/2020/04/BB_logo_es.jpg"
+			card.LogoUrl = "https://cabalacentroestudios.com/wp-content/uploads/2020/04/BB_logo_es.jpg"
 			card.CaptionSet = make(map[string]string)
 			card.CaptionSet["cs_header_payment"] = "Pago con tarjeta de crédito"
 			card.CaptionSet["cs_header_registeration"] = "Registro con tarjeta de crédito"
@@ -159,7 +155,7 @@ func NewPayment(c *gin.Context) {
 		return
 	}
 
-	if err = card.Init(request.Organization, types.Recurrent, true); err != nil {
+	if err = card.Init(request.Organization, types.Regular, true); err != nil {
 		msg := fmt.Sprintf("New Payment: Pelecard Init %s", err.Error())
 		logMessage(msg)
 
@@ -167,7 +163,7 @@ func NewPayment(c *gin.Context) {
 		return
 	}
 
-	if err, url := card.GetRedirectUrl(types.Authorize); err != nil {
+	if err, url := card.GetRedirectUrl(types.Charge); err != nil {
 		msg := fmt.Sprintf("New Payment: Error GetRedirectUrl %s", err.Error())
 		logMessage(msg)
 
@@ -215,7 +211,7 @@ func GoodPayment(c *gin.Context) {
 
 	// approve params
 	card := &pelecard.PeleCard{}
-	if err := card.Init(org, types.Recurrent, true); err != nil {
+	if err := card.Init(org, types.Regular, true); err != nil {
 		m := fmt.Sprintf("Good Payment: Approve Init Error %s", err.Error())
 		logMessage(m)
 
@@ -284,149 +280,10 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	// Charge donor for the first time
-	currency := 1 // ILS
-	switch request.Currency {
-	case "USD":
-		currency = 2
-	case "EUR":
-		currency = 978
-	}
-	card = &pelecard.PeleCard{
-		Currency:            currency,
-		UserKey:             request.UserKey,
-		Token:               form.Token,
-		AuthorizationNumber: form.ApprovalNo,
-		ParamX:              form.ParamX,
-		TotalX100:           fmt.Sprintf("%d", int(request.Price*100.00)),
-	}
-	if err := card.Init(org, types.Recurrent, true); err != nil {
-		m := fmt.Sprintf("Good Payment: ApproveInit %s", err.Error())
-		logMessage(m)
-
-		ErrorJson("Approve Init: "+err.Error(), c)
-		return
-	}
-	if err, msg = card.ChargeByToken(false); err != nil {
-		m := fmt.Sprintf("Good Payment: First Charge %s", err.Error())
-		logMessage(m)
-
-		db.SetStatus(form.UserKey, "invalid")
-		ErrorJson("First Charge error ", c)
-		return
-	}
-
 	db.SetStatus(form.UserKey, "valid")
 	// redirect to GoodURL
 	v, _ := query.Values(response)
 	OnSuccess(request.GoodURL, v.Encode(), card.Token, card.AuthorizationNumber, c)
-}
-
-func AuthorizeCC(c *gin.Context) {
-	authorize(c, types.Regular)
-}
-
-func AuthorizeCCRecurr(c *gin.Context) {
-	authorize(c, types.Recurrent)
-}
-
-func authorize(c *gin.Context, terminalType types.PelecardType) {
-	var err error
-	var request struct {
-		Token     string `json:"token"`
-		Reference string `json:"paramX"`
-	}
-
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
-		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			m := fmt.Sprintf("Charge: %s", err.Error())
-			logMessage(m)
-			ErrorJson("Charge Bind "+err.Error(), c)
-			return
-		}
-	}
-
-	m := fmt.Sprintf("AuthorizeCC: %+v", request)
-	logMessage(m)
-
-	card := &pelecard.PeleCard{
-		Token:     request.Token,
-		TotalX100: "100",
-		Currency:  1,
-		ParamX:    request.Reference,
-	}
-	if err = card.Init("ben2", terminalType, true); err != nil {
-		m := fmt.Sprintf("AuthorizeCC: pelecard init %s", err.Error())
-		logMessage(m)
-
-		ErrorJson("AuthorizeCC PeleCard Init: "+err.Error(), c)
-		return
-	}
-	var msg map[string]interface{}
-	result := map[string]string{}
-
-	if err, msg = card.AuthorizeCreditCard(); err != nil {
-		m = fmt.Sprintf("AuthorizeCC: AuthorizeCC GOT %#v", msg)
-		logMessage(m)
-		m = fmt.Sprintf("AuthorizeCC: AuthorizeCC Error %s", err.Error())
-		logMessage(m)
-
-		ErrorJson(m, c)
-		return
-	}
-	result["ApprovalNo"] = msg["DebitApproveNumber"].(string)
-	ResultJson(result, c)
-}
-
-func AuthorizeCCX(c *gin.Context) {
-	var err error
-	var requests []struct {
-		Token     string `json:"token"`
-		Reference string `json:"paramX"`
-	}
-
-	if err = c.BindJSON(&requests); err != nil { // Bind by JSON (post)
-		if err = c.ShouldBind(&requests); err != nil { // Bind by Query String (get)
-			m := fmt.Sprintf("Charge: %s", err.Error())
-			logMessage(m)
-			ErrorJson("Charge Bind "+err.Error(), c)
-			return
-		}
-	}
-
-	var results []map[string]string
-
-	for _, request := range requests {
-		m := fmt.Sprintf("AuthorizeCC: %+v", requests)
-		logMessage(m)
-
-		card := &pelecard.PeleCard{
-			Token:     request.Token,
-			TotalX100: "100",
-			Currency:  1,
-			ParamX:    request.Reference,
-		}
-		if err = card.Init("ben2", types.Regular, true); err != nil {
-			m := fmt.Sprintf("AuthorizeCC: pelecard init %s", err.Error())
-			logMessage(m)
-			continue
-		}
-		var msg map[string]interface{}
-		result := map[string]string{}
-
-		if err, msg = card.AuthorizeCreditCard(); err != nil {
-			m = fmt.Sprintf("AuthorizeCC: AuthorizeCC GOT %#v", msg)
-			logMessage(m)
-			m = fmt.Sprintf("AuthorizeCC: AuthorizeCC Error %s", err.Error())
-			logMessage(m)
-
-			continue
-		}
-		result["ApprovalNo"] = msg["DebitApproveNumber"].(string)
-		result["ParamX"] = request.Reference
-		results = append(results, result)
-	}
-	ResultJsonArray(results, c)
 }
 
 func Charge(c *gin.Context) {
@@ -470,7 +327,7 @@ func Charge(c *gin.Context) {
 		AuthorizationNumber: request.ApprovalNo,
 		ParamX:              request.Reference,
 	}
-	if err = card.Init(request.Organization, types.Recurrent, true); err != nil {
+	if err = card.Init(request.Organization, types.Regular, true); err != nil {
 		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
 		logMessage(m)
 
@@ -481,93 +338,12 @@ func Charge(c *gin.Context) {
 	var msg map[string]interface{}
 	var response = types.PaymentResponse{}
 
-	if err, msg = card.ChargeByToken(false); err != nil {
+	if err, msg = card.ChargeByToken(true); err != nil {
 		db.SetStatus(request.UserKey, "invalid")
 		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge error ", c)
-		return
-	}
-	body, _ := json.Marshal(msg)
-	_ = json.Unmarshal(body, &response)
-	response.UserKey = request.UserKey
-	// update DB
-	if err = db.UpdateRequest(response); err != nil {
-		m := fmt.Sprintf("Charge: UpdateRequest %s", err.Error())
-		logMessage(m)
-
-		ErrorJson("Charge UpdateRequest "+err.Error(), c)
-		return
-	}
-
-	db.SetStatus(request.UserKey, "valid")
-	data, _ := json.Marshal(response)
-	var result = map[string]string{
-		"status": "success",
-		"data":   string(data),
-	}
-	ResultJson(result, c)
-}
-
-func ChargeX(c *gin.Context) {
-	var err error
-
-	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
-		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			m := fmt.Sprintf("Charge: %s", err.Error())
-			logMessage(m)
-			ErrorJson("Charge Bind "+err.Error(), c)
-			return
-		}
-	}
-
-	m := fmt.Sprintf("Charge: %+v", request)
-	logMessage(m)
-
-	// Store request into DB
-	if err = db.StoreRequest(request); err != nil {
-		m := fmt.Sprintf("Charge: Store request %s", err.Error())
-		logMessage(m)
-		ErrorJson("Charge StoreRequest "+err.Error(), c)
-		return
-	}
-
-	db.SetStatus(request.UserKey, "in-process")
-
-	currency := 1 // ILS
-	switch request.Currency {
-	case "USD":
-		currency = 2
-	case "EUR":
-		currency = 978
-	}
-	total := fmt.Sprintf("%d", int(float32(request.Price)*100.00))
-	card := &pelecard.PeleCard{
-		Token:               request.Token,
-		TotalX100:           total,
-		Currency:            currency,
-		AuthorizationNumber: request.ApprovalNo,
-		ParamX:              request.Reference,
-	}
-	if err = card.Init(request.Organization, types.Regular, false); err != nil {
-		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
-		logMessage(m)
-
-		ErrorJson("Charge PeleCard Init: "+err.Error(), c)
-		return
-	}
-
-	var msg map[string]interface{}
-	var response = types.PaymentResponse{}
-
-	if err, msg = card.ChargeByToken(false); err != nil {
-		db.SetStatus(request.UserKey, "invalid")
-		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
-		logMessage(m)
-
-		ErrorJson("Charge error ", c)
+		ErrorJson("Charge error "+ err.Error(), c)
 		return
 	}
 	body, _ := json.Marshal(msg)
@@ -702,12 +478,6 @@ func OnSuccess(url string, msg string, token string, authNo string, c *gin.Conte
 }
 
 func ResultJson(msg map[string]string, c *gin.Context) {
-	js, _ := json.Marshal(msg)
-	c.Writer.WriteHeader(http.StatusOK)
-	_, _ = c.Writer.Write(js)
-}
-
-func ResultJsonArray(msg []map[string]string, c *gin.Context) {
 	js, _ := json.Marshal(msg)
 	c.Writer.WriteHeader(http.StatusOK)
 	_, _ = c.Writer.Write(js)

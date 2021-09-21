@@ -1,10 +1,13 @@
 package types
 
 type PelecardType string
+type ActionType string
 
 var (
 	Regular   PelecardType = "Regular"
 	Recurrent PelecardType = "Recurrent"
+	Authorize ActionType   = "J5"
+	Charge    ActionType   = "J4"
 )
 
 type PaypalRegister struct {
