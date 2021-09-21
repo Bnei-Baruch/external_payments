@@ -71,11 +71,15 @@ type PelecardService struct {
 	ParamX              string
 }
 
-func (p *PeleCard) Init(organization string, peleCard types.PelecardType) (err error) {
+func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bool) (err error) {
 	p.User = os.Getenv(organization + "_PELECARD_USER")
 	p.Password = os.Getenv(organization + "_PELECARD_PASSWORD")
 	if peleCard == types.Regular {
-		p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL")
+		if new {
+			p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL")
+		} else {
+			p.Terminal = os.Getenv(organization + "_PELECARD_TERMINAL_PREEMV")
+		}
 	} else {
 		p.Terminal = os.Getenv("PELECARD_RECURR_TERMINAL")
 	}
@@ -98,13 +102,16 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 	return
 }
 
-func (p *PeleCard) GetRedirectUrl(withToken bool) (err error, url string) {
-	if withToken {
-		p.ActionType = "J5" // Approved Transaction -- DebitApproveNumber
-		p.CreateToken = "True"
-	} else {
-		p.ActionType = "J4"
-	}
+func (p *PeleCard) GetRedirectUrl(ActionType types.ActionType) (err error, url string) {
+	//if withToken {
+	//	p.ActionType = "J5" // Approved Transaction -- DebitApproveNumber
+	//	p.CreateToken = "True"
+	//} else {
+	//	p.ActionType = "J4"
+	//}
+	p.ActionType = string(ActionType)
+	p.CreateToken = "True"
+
 	p.CardHolderName = "hide"
 	p.CustomerIdField = "hide"
 	p.Cvv2Field = "must"
@@ -125,17 +132,19 @@ func (p *PeleCard) GetRedirectUrl(withToken bool) (err error, url string) {
 	return
 }
 
-func (p *PeleCard) ChargeByToken() (err error, result map[string]interface{}) {
+func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, result map[string]interface{}) {
 	s := &PelecardService{
-		TerminalNumber:      p.Terminal,
-		User:                p.User,
-		Password:            p.Password,
-		ShopNumber:          "1000",
-		Token:               p.Token,
-		Total:               p.TotalX100,
-		Currency:            p.Currency,
-		AuthorizationNumber: p.AuthorizationNumber,
-		ParamX:              p.ParamX,
+		TerminalNumber: p.Terminal,
+		User:           p.User,
+		Password:       p.Password,
+		ShopNumber:     "1000",
+		Token:          p.Token,
+		Total:          p.TotalX100,
+		Currency:       p.Currency,
+		ParamX:         p.ParamX,
+	}
+	if !skipAuthorizationNumber {
+		s.AuthorizationNumber = p.AuthorizationNumber
 	}
 	err, result = p.services("/DebitRegularType", s)
 	return

@@ -98,7 +98,7 @@ func NewPayment(c *gin.Context) {
 			card.TopText = "Bnei Baruch Kabbalah laAm"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 			card.Language = "EN"
-			card.LogoUrl = "http://cabalacentroestudios.com/wp-content/uploads/2020/04/BB_logo_es.jpg"
+			card.LogoUrl = "https://cabalacentroestudios.com/wp-content/uploads/2020/04/BB_logo_es.jpg"
 			card.CaptionSet = make(map[string]string)
 			card.CaptionSet["cs_header_payment"] = "Pago con tarjeta de crédito"
 			card.CaptionSet["cs_header_registeration"] = "Registro con tarjeta de crédito"
@@ -146,12 +146,12 @@ func NewPayment(c *gin.Context) {
 		return
 	}
 
-	if err = card.Init(request.Organization, types.Regular); err != nil {
+	if err = card.Init(request.Organization, types.Regular, true); err != nil {
 		OnError("Init"+err.Error(), c)
 		return
 	}
 
-	if err, url := card.GetRedirectUrl(false); err != nil {
+	if err, url := card.GetRedirectUrl(types.Charge); err != nil {
 		OnError("GetRedirectUrl"+err.Error(), c)
 	} else {
 		OnRedirect(url, "", c)
@@ -188,7 +188,7 @@ func GoodPayment(c *gin.Context) {
 
 	// approve params
 	card := &pelecard.PeleCard{}
-	if err := card.Init(org, types.Regular); err != nil {
+	if err := card.Init(org, types.Regular, true); err != nil {
 		OnError("Init"+err.Error(), c)
 		return
 	}
@@ -215,7 +215,7 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	if err := card.Init(request.Organization, types.Regular); err != nil {
+	if err := card.Init(request.Organization, types.Regular, true); err != nil {
 		OnError("Init "+err.Error(), c)
 		return
 	}
