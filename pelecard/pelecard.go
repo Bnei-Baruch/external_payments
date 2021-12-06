@@ -211,7 +211,7 @@ func (p *PeleCard) services(action string, data *PelecardService) (err error, re
 
 	errLogger := gin.DefaultErrorWriter
 	var msg string
-	msg = fmt.Sprintf("=============> POST: %s\n%s\n", url, params)
+	msg = fmt.Sprintf("----------> SERVICE: %s\n%s\n", url, params)
 	_, _ = errLogger.Write([]byte(msg))
 
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
@@ -239,7 +239,11 @@ func (p *PeleCard) services(action string, data *PelecardService) (err error, re
 
 func (p *PeleCard) connect(action string) (err error, result map[string]interface{}) {
 	params, _ := json.Marshal(*p)
-	resp, err := http.Post(p.Url+action, "application/json", bytes.NewBuffer(params))
+	url := p.Url+action
+	errLogger := gin.DefaultErrorWriter
+	m := fmt.Sprintf("----------> CONNECT: %s\n%s\n", url, params)
+	_, _ = errLogger.Write([]byte(m))
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
