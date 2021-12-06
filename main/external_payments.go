@@ -61,6 +61,8 @@ func router(r *gin.Engine) {
 		payments.POST("/cancel", payment.CancelPayment)
 		payments.GET("/confirm", payment.ConfirmPayment)
 		payments.POST("/confirm", payment.ConfirmPayment)
+		payments.GET("/transaction", payment.GetTransaction)
+		payments.POST("/transaction", payment.GetTransaction)
 	}
 	withToken := r.Group("/token")
 	{

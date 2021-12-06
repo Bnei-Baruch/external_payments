@@ -36,6 +36,33 @@ func ConfirmPayment(c *gin.Context) {
 	_, _ = c.Writer.Write(message)
 }
 
+func GetTransaction(c *gin.Context) {
+	var err error
+	request := types.GetTransactionRequest{}
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
+		if err = c.ShouldBindQuery(&request); err != nil { // Bind by Query String (get)
+			OnError("Bind "+err.Error(), c)
+			return
+		}
+	}
+	c.Status(http.StatusOK)
+	card := &pelecard.PeleCard{}
+	if err = card.Init(request.Organization, types.Recurrent, true); err != nil {
+		OnError("Init"+err.Error(), c)
+		return
+	}
+
+	var msg map[string]interface{}
+	if err, msg = card.GetTransaction(request.TransactionId); err != nil {
+		OnError("GetTransaction "+err.Error(), c)
+		return
+	}
+
+	body, _ := json.Marshal(msg)
+	c.Writer.WriteHeader(http.StatusOK)
+	_, _ = c.Writer.Write(body)
+}
+
 func NewPayment(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
