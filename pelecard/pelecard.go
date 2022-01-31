@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
+	time "time"
 
 	"github.com/gin-gonic/gin"
 
@@ -59,16 +61,19 @@ type PeleCard struct {
 	TotalX100       string            `json:",omitempty"`
 }
 
-type PelecardService struct {
+type service struct {
 	TerminalNumber      string
 	User                string
 	Password            string
-	ShopNumber          string
-	Token               string
-	Total               string
-	Currency            int
+	ShopNumber          string `json:",omitempty"`
+	Token               string `json:",omitempty"`
+	Total               string `json:",omitempty"`
+	Currency            int    `json:",omitempty"`
 	AuthorizationNumber string `json:",omitempty"`
-	ParamX              string
+	ParamX              string `json:",omitempty"`
+
+	StartDate string `json:"startDate,omitempty"`
+	EndDate   string `json:"endDate,omitempty"`
 }
 
 func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bool) (err error) {
@@ -102,6 +107,40 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 	return
 }
 
+func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err error, msg map[string]interface{}) {
+	log.Printf("===> GetTransactionData around %s with approval %s\n", createDate, approvalNo)
+	layoutIn := "2006-01-02 15:04:05"
+	layoutOut := "02/01/2006 15:04"
+	date, err := time.Parse(layoutIn, createDate)
+	if err != nil {
+		log.Printf("===> GetTransactionData time parse error %s\n", err.Error())
+		return err, nil
+	}
+	s := &service{
+		TerminalNumber: p.Terminal,
+		User:           p.User,
+		Password:       p.Password,
+	}
+	s.StartDate = date.Add(-time.Minute * 5).Format(layoutOut)
+	s.EndDate = date.Add(time.Minute * 5).Format(layoutOut)
+	log.Printf("===> GetTransactionData between %s and %s\n", s.StartDate, s.EndDate)
+	var data []interface{}
+	if err, data = p.servicesArr("/GetTransData", s); err != nil {
+		return err, nil
+	}
+	log.Printf("===> GetTransactionData found %d transactions\n", len(data))
+	for _, d := range data {
+		msg = d.(map[string]interface{})
+		log.Printf("===> GetTransactionData transaction with approval %s\n", msg["DebitApproveNumber"])
+		if msg["DebitApproveNumber"] == approvalNo {
+			log.Printf("===> GetTransactionData FOUND!!!")
+			return nil, msg
+		}
+	}
+	log.Printf("===> GetTransactionData NOT FOUND :(")
+	return fmt.Errorf("unable to find transaction around %s with approval %s", createDate, approvalNo), nil
+}
+
 func (p *PeleCard) GetRedirectUrl(ActionType types.ActionType) (err error, url string) {
 	//if withToken {
 	//	p.ActionType = "J5" // Approved Transaction -- DebitApproveNumber
@@ -133,7 +172,7 @@ func (p *PeleCard) GetRedirectUrl(ActionType types.ActionType) (err error, url s
 }
 
 func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, result map[string]interface{}) {
-	s := &PelecardService{
+	s := &service{
 		TerminalNumber: p.Terminal,
 		User:           p.User,
 		Password:       p.Password,
@@ -151,7 +190,7 @@ func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, resul
 }
 
 func (p *PeleCard) AuthorizeCreditCard() (err error, result map[string]interface{}) {
-	s := &PelecardService{
+	s := &service{
 		TerminalNumber: os.Getenv("PELECARD_RECURR_TERMINAL"),
 		User:           p.User,
 		Password:       p.Password,
@@ -205,7 +244,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 	return
 }
 
-func (p *PeleCard) services(action string, data *PelecardService) (err error, result map[string]interface{}) {
+func (p *PeleCard) services(action string, data *service) (err error, result map[string]interface{}) {
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
@@ -237,11 +276,43 @@ func (p *PeleCard) services(action string, data *PelecardService) (err error, re
 	return
 }
 
+func (p *PeleCard) servicesArr(action string, data *service) (err error, result []interface{}) {
+	params, _ := json.Marshal(*data)
+	url := p.Service + action
+
+	errLogger := gin.DefaultErrorWriter
+	var msg string
+	msg = fmt.Sprintf("----------> SERVICE: %s\n%s\n", url, params)
+	_, _ = errLogger.Write([]byte(msg))
+
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var body map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&body)
+	if status, ok := body["StatusCode"]; ok {
+		if status == "000" {
+			err = nil
+			result = body["ResultData"].([]interface{})
+		} else {
+			if msg, ok := body["ErrorMessage"]; ok {
+				err = fmt.Errorf("0: %s", msg)
+			} else {
+				err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
+			}
+		}
+	}
+
+	return
+}
+
 func (p *PeleCard) connect(action string) (err error, result map[string]interface{}) {
 	params, _ := json.Marshal(*p)
-	url := p.Url+action
+	url := p.Url + action
 	errLogger := gin.DefaultErrorWriter
-	m := fmt.Sprintf("----------> CONNECT: %s\n%s\n", url, params)
+	m := fmt.Sprintf("----------> CONNECT: %s\n%#v\n", url, p)
 	_, _ = errLogger.Write([]byte(m))
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
@@ -274,6 +345,42 @@ func (p *PeleCard) connect(action string) (err error, result map[string]interfac
 			} else {
 				err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 			}
+		}
+	}
+
+	return
+}
+
+func (p *PeleCard) connectArr(action string) (err error, result []map[string]interface{}) {
+	params, _ := json.Marshal(*p)
+	url := p.Url + action
+	errLogger := gin.DefaultErrorWriter
+	m := fmt.Sprintf("----------> CONNECT: %s\n%#v\n", url, p)
+	_, _ = errLogger.Write([]byte(m))
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var body map[string]interface{}
+	json.NewDecoder(resp.Body).Decode(&body)
+	if msg, ok := body["Error"]; ok {
+		msg := msg.(map[string]interface{})
+		if errCode, ok := msg["ErrCode"]; ok {
+			if errCode.(float64) > 0 {
+				err = fmt.Errorf("%d: %s", int(errCode.(float64)), msg["ErrMsg"])
+			}
+		} else {
+			err = fmt.Errorf("0: %s", msg["ErrMsg"])
+		}
+		return
+	}
+	if status, ok := body["StatusCode"]; ok {
+		if status == "000" {
+			err = nil
+			result = body["ResultData"].([]map[string]interface{})
+		} else {
+			err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 		}
 	}
 

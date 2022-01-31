@@ -47,14 +47,13 @@ func GetTransaction(c *gin.Context) {
 	}
 	c.Status(http.StatusOK)
 	card := &pelecard.PeleCard{}
-	if err = card.Init(request.Organization, types.Recurrent, true); err != nil {
+	if err = card.Init(request.Organization, types.Regular, true); err != nil {
 		OnError("Init"+err.Error(), c)
 		return
 	}
-
 	var msg map[string]interface{}
-	if err, msg = card.GetTransaction(request.TransactionId); err != nil {
-		OnError("GetTransaction "+err.Error(), c)
+	if err, msg = card.GetTransactionData(request.CreatedAt, request.ApprovalNo); err != nil {
+		OnError("GetTransactionData "+err.Error(), c)
 		return
 	}
 
