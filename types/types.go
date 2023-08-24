@@ -120,3 +120,28 @@ type PaymentResponse struct {
 	TransactionPelecardId    string `db:"transaction_pelecard_id" url:"transaction_pelecard_id"`
 	DebitCurrency            string `db:"debit_currency" url:"debit_currency"`
 }
+
+type Project struct {
+	Id        int     `db:"id"`
+	Name      string  `db:"name"`
+	Target    float64 `db:"target"`
+	StartDate string  `db:"start_date"`
+	Url       string  `db:"url"`
+}
+
+type ProjectTotals struct {
+	Contributors float64 `db:"contributors"`
+	Total        float64 `db:"total"`
+}
+
+type ProjectRange struct {
+	Start        float64 `db:"start"`
+	Finish       float64 `db:"finish"`
+	Contributors float64 `db:"contributors"`
+}
+
+type ProjectByCountry struct {
+	Country      string  `db:"country"`
+	Contributors float64 `db:"contributors"`
+	Sum          float64 `db:"sum"`
+}

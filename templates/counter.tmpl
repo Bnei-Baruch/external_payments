@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+    <link href="/assets/money-counter.css" media="screen" rel="stylesheet"
+          type="text/css"/>
+    <style>#money-counter {
+        background-color: {{ .bgcolor }};
+    }</style>
+</head>
+<body class='{{ .language }}'>
+<div id="money-counter">
+    <div class="data">
+        <h4><span class="amount">{{ .donors }}</span> <span class="sub-h4">{{ .contributors }}</span></h4>
+        <h5>
+            <span class="amount">${{ .amount | formatAmount }}</span>
+            <div class="sub-h5">{{ .of }} <span>${{ .target | formatAmount }} {{ .goal }}</span></div>
+        </h5>
+        <div class="percent"><span>{{ .percent }}%</span>
+            <div class="progress">
+                <div class="bar" style="width:{{ .percent }}%;"></div>
+            </div>
+        </div>
+    </div>
+    <div class="button"><a href="{{ .url }}" class="btn btn-large btn-success donate"
+                           target="_parent">{{ .contribute }}</a></div>
+   <br />
+</div>
+</body>

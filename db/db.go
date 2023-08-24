@@ -318,3 +318,76 @@ func execInTx(query string, args ...interface{}) (err error) {
 	}
 	return
 }
+
+func GetProject(projectName string) (project types.Project, err error) {
+	err = db.Get(&project,
+		heredoc.Doc(`
+			SELECT *
+			FROM bb_projects 
+			WHERE name = ?
+			LIMIT 1
+		`), projectName)
+	return
+}
+
+func GetProjectTotals(projectName string, currency string, date string) (project types.ProjectTotals, err error) {
+	err = db.Get(&project,
+		heredoc.Doc(`
+SELECT count(1) AS contributors, sum(co.total_amount) AS total
+FROM civicrm_contribution co
+INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
+WHERE (co.contribution_status_id = 1) 
+  AND (co.financial_type_id = 21)
+  AND (co.receive_date >= ?)
+  AND (co.currency = ?);
+		`), projectName, date, currency)
+	return
+}
+
+func GetProjectRanges(projectName string, date string) (prange []types.ProjectRange, err error) {
+	err = db.Select(&prange,
+		heredoc.Doc(`
+WITH a AS (
+	SELECT IF(co.currency = 'USD', total_amount, IF(co.currency = 'EUR', total_amount * 1.1, total_amount / 4.13)) AS amount
+	FROM civicrm_contribution co
+	INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
+	WHERE (co.contribution_status_id = 1) AND (co.financial_type_id = 21) AND (co.receive_date >= ?)
+)
+SELECT 1 AS start, 9 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 1 AND 9
+UNION
+SELECT 10 AS start, 99 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 10 AND 99
+UNION
+SELECT 100 AS start, 999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 100 AND 999
+UNION
+SELECT 1000 AS start, 4999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 1000 AND 4999
+UNION
+SELECT 5000 AS start, 9999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 5000 AND 9999
+UNION
+SELECT 10000 AS start, 99999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 10000 AND 99999
+UNION
+SELECT 100000 AS start, 999999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 100000 AND 999999
+UNION
+SELECT 1000000 AS start, 9999999 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 1000000 AND 9999999
+		`), projectName, date)
+	return
+}
+
+func GetProjectByCountry(projectName string, date string) (byCountry []types.ProjectByCountry, err error) {
+	err = db.Select(&byCountry,
+		heredoc.Doc(`
+WITH a AS (
+	SELECT country.name AS country,
+		IF(co.currency = 'USD', total_amount, IF(co.currency = 'EUR', total_amount * 1.1, total_amount / 4.13)) AS amount
+	FROM civicrm_contribution co
+	INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
+	LEFT JOIN civicrm_address address
+		ON co.contact_id = address.contact_id AND address.location_type_id = 5 AND address.is_primary = 1
+	LEFT JOIN civicrm_country country ON address.country_id = country.id
+	WHERE co.contribution_status_id = 1 AND co.financial_type_id = 21 AND co.receive_date >= ?
+)
+SELECT country, sum(amount) as sum, count(1) contributors
+FROM a
+GROUP BY country
+		`), projectName, date)
+	return
+}

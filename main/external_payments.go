@@ -1,31 +1,37 @@
 // once: go mod init external_payments
-// go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_D_DRIVE/projects/bbpriority/
+// CGO_ENABLED=0 go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_D_DRIVE/projects/bbpriority/
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 
 package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
 	"os"
 
-	"external_payments/emv"
 	_ "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
+	"golang.org/x/text/language"
+	"golang.org/x/text/message"
 
+	"external_payments/counters"
 	"external_payments/db"
+	"external_payments/emv"
 	"external_payments/payment"
 	"external_payments/token"
 )
 
 func main() {
 	env := os.Getenv("ENV")
+	isProd := false
 	if env == "" {
 		env = "production"
 	}
 	if env == "production" {
+		isProd = true
 		gin.SetMode(gin.ReleaseMode)
 	}
 
@@ -34,8 +40,10 @@ func main() {
 		port = ":8080"
 	}
 
-	_ = db.Connect()
-	defer db.Disconnect()
+	if isProd {
+		_ = db.Connect()
+		defer db.Disconnect()
+	}
 
 	r := gin.Default()
 	// configure to automatically detect scheme and host
@@ -43,13 +51,12 @@ func main() {
 	// - use localhost:8080 when default host cannot be determined
 	r.Use(location.Default())
 	r.Use(CORSMiddleware())
-	router(r)
-	// log.Fatal(autotls.Run(r, ":"+port))
+	router(r, isProd)
 	fmt.Printf("<<< Waiting on port %s >>>\n", port)
 	log.Fatal(r.Run(":" + port))
 }
 
-func router(r *gin.Engine) {
+func router(r *gin.Engine, isProd bool) {
 	// Request for payment
 	payments := r.Group("/payments")
 	{
@@ -101,9 +108,26 @@ func router(r *gin.Engine) {
 		paypal.GET("/confirm", ConfirmPaypal)
 		paypal.POST("/confirm", ConfirmPaypal)
 	}
+
+	projects := r.Group("/projects/:language/:project_name")
+	{
+		r.SetFuncMap(template.FuncMap{
+			"formatAmount": formatAmount,
+		})
+		r.LoadHTMLFiles("templates/counter.tmpl", "templates/statistics.tmpl", "templates/404.html")
+		projects.GET("/counter", counters.Counter)
+		projects.GET("/statistics", counters.Statistics)
+	}
+	r.Static("/assets", "./assets")
+
 	//for _, route := range r.Routes() {
 	//	fmt.Println(route.Method, route.Path)
 	//}
+}
+
+func formatAmount(number float64) string {
+	p := message.NewPrinter(language.English)
+	return p.Sprintf("%.0f", number)
 }
 
 func CORSMiddleware() gin.HandlerFunc {

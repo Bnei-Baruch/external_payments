@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<head>
+    <script type="text/javascript">
+        function show_all() {
+            const elements = document.querySelectorAll('.hidden');
+            elements.forEach((element) => {
+                element.classList.remove('hidden');
+            });
+            const element = document.getElementById('all-countries');
+            element.classList.add('hidden');
+        }
+    </script>
+    <link href="/assets/money-counter.css" media="screen" rel="stylesheet" type="text/css"/>
+    <style>#money-counter {
+        background-color: {{ .bgcolor }};
+    }</style>
+</head>
+<body class='{{ .language }}'>
+<div id="money-counter">
+   <h3>{{ .statistics }}</h3>
+   <div class="statistics">
+        {{- /* donors per range */ -}}
+        <table class="table table-striped table-bordered table-condensed">
+            <thead>
+            <tr>
+                <th>{{ .sum }}</th>
+                <th>{{ .contributors }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{ range .ranges }}
+                <tr>
+                    <td>${{ .Start | formatAmount }} {{ $.to }} ${{ .Finish | formatAmount }}</td>
+                    <td class="right-align">{{ .Contributors | formatAmount }}</td>
+                </tr>
+            {{ end }}
+            </tbody>
+        </table>
+    </div>
+    {{- /* donors per country */ -}}
+    <div class="statistics">
+        <table class="table table-striped table-bordered table-condensed">
+            <thead>
+            <tr>
+                <th>{{ .country }}</th>
+                <th>{{ .contributors }}</th>
+                <th>{{ .sum }}</th>
+            </tr>
+            </thead>
+            <tbody>
+            {{ range $index, $element := .countries }}
+            {{ if lt $index 10 }}
+                <tr>
+            {{ else }}
+                <tr class="hidden">
+            {{ end }}
+                <td>{{ .Country }}</td>
+                <td class="right-align">{{ .Contributors | formatAmount}}</td>
+                <td class="right-align">${{ .Sum | formatAmount }}</td>
+            </tr>
+            {{ end }}
+            </tbody>
+        </table>
+        <a href="javascript:void(0)" onclick="show_all(); return(false);"
+           class="all-countries" id="all-countries">{{ .all_countries }}</a></div>
+</div>
+</body>
