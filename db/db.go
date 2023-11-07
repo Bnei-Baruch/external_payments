@@ -336,7 +336,7 @@ func GetProjectTotals(projectName string, currency string, date string) (project
 SELECT count(1) AS contributors, sum(co.total_amount) AS total
 FROM civicrm_contribution co
 INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
-WHERE (co.contribution_status_id = 1) 
+WHERE (co.contribution_status_id IN (1, 6)) 
   AND (co.financial_type_id = 21)
   AND (co.receive_date >= ?)
   AND (co.currency = ?);
@@ -351,7 +351,7 @@ WITH a AS (
 	SELECT IF(co.currency = 'USD', total_amount, IF(co.currency = 'EUR', total_amount * 1.1, total_amount / 4.13)) AS amount
 	FROM civicrm_contribution co
 	INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
-	WHERE (co.contribution_status_id = 1) AND (co.financial_type_id = 21) AND (co.receive_date >= ?)
+	WHERE (co.contribution_status_id IN (1, 6)) AND (co.financial_type_id = 21) AND (co.receive_date >= ?)
 )
 SELECT 1 AS start, 9 AS finish, COALESCE(sum(1), 0) AS contributors FROM a WHERE a.amount BETWEEN 1 AND 9
 UNION
@@ -373,21 +373,26 @@ SELECT 1000000 AS start, 9999999 AS finish, COALESCE(sum(1), 0) AS contributors 
 }
 
 func GetProjectByCountry(projectName string, date string) (byCountry []types.ProjectByCountry, err error) {
-	err = db.Select(&byCountry,
-		heredoc.Doc(`
+	sql := heredoc.Doc(`
 WITH a AS (
-	SELECT country.name AS country,
+	SELECT COALESCE(
+			(SELECT country.name FROM civicrm_country country WHERE country.iso_code = 
+			  (SELECT country_256.bb_country_1629 from civicrm_value_bb_country_256 country_256 where country_256.entity_id = co.contact_id LIMIT 1)
+			LIMIT 1),
+			(SELECT country.name FROM civicrm_country country WHERE country.id = 
+				(SELECT address.country_id FROM civicrm_address address WHERE address.contact_id = co.contact_id AND address.is_primary = 1 LIMIT 1)
+			LIMIT 1) 
+		) AS country,
 		IF(co.currency = 'USD', total_amount, IF(co.currency = 'EUR', total_amount * 1.1, total_amount / 4.13)) AS amount
 	FROM civicrm_contribution co
 	INNER JOIN civicrm_value_maser_55 pr ON pr.entity_id = co.id AND pr.event_for_activity_1417 = ?
-	LEFT JOIN civicrm_address address
-		ON co.contact_id = address.contact_id AND address.location_type_id = 5 AND address.is_primary = 1
-	LEFT JOIN civicrm_country country ON address.country_id = country.id
-	WHERE co.contribution_status_id = 1 AND co.financial_type_id = 21 AND co.receive_date >= ?
+	WHERE co.contribution_status_id IN (1, 6) AND co.financial_type_id = 21 AND co.receive_date >= ?
 )
-SELECT country, sum(amount) as sum, count(1) contributors
+SELECT country, CONVERT(sum(amount), INTEGER) as sum, count(1) contributors
 FROM a
 GROUP BY country
-		`), projectName, date)
+ORDER BY SUM DESC
+	`)
+	err = db.Select(&byCountry, sql, projectName, date)
 	return
 }

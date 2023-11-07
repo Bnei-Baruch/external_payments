@@ -10,6 +10,7 @@ import (
 
 	"external_payments/db"
 	"external_payments/types"
+	"external_payments/utils"
 )
 
 var translations = map[string]map[string]string{
@@ -167,6 +168,7 @@ func Statistics(c *gin.Context) {
 	}
 	ranges, err := db.GetProjectRanges(project.Name, project.StartDate)
 	if err != nil {
+		utils.LogMessage(fmt.Sprint("======> GetProjectRanges", err.Error()))
 		ranges = []types.ProjectRange{
 			{Start: 1, Finish: 9, Contributors: 12},
 			{Start: 10, Finish: 99, Contributors: 12},
@@ -180,6 +182,7 @@ func Statistics(c *gin.Context) {
 	}
 	byCountry, err := db.GetProjectByCountry(project.Name, project.StartDate)
 	if err != nil {
+		utils.LogMessage(fmt.Sprint("======> GetProjectByCountry", err.Error()))
 		byCountry = []types.ProjectByCountry{}
 	}
 	c.HTML(http.StatusOK, "statistics.tmpl", gin.H{
