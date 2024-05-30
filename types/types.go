@@ -8,6 +8,7 @@ var (
 	Recurrent PelecardType = "Recurrent"
 	Authorize ActionType   = "J5"
 	Charge    ActionType   = "J4"
+	Register  ActionType   = "J2"
 )
 
 type PaypalRegister struct {

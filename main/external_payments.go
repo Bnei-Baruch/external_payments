@@ -101,6 +101,9 @@ func router(r *gin.Engine, isProd bool) {
 		withEmv.POST("/confirm", emv.ConfirmPayment)
 		withEmv.GET("/charge", emv.Charge)
 		withEmv.POST("/charge", emv.Charge)
+		withEmv.GET("/new_token", emv.NewToken)
+		withEmv.POST("/new_token", emv.NewToken)
+		withEmv.POST("/good_token", emv.GoodToken)
 	}
 
 	paypal := r.Group("/paypal")

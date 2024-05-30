@@ -283,7 +283,7 @@ func GoodPayment(c *gin.Context) {
 	db.SetStatus(form.UserKey, "valid")
 	// redirect to GoodURL
 	v, _ := query.Values(response)
-	OnSuccess(request.GoodURL, v.Encode(), card.Token, card.AuthorizationNumber, c)
+	onSuccessPayment(request.GoodURL, v.Encode(), card.Token, card.AuthorizationNumber, c)
 }
 
 func Charge(c *gin.Context) {
@@ -343,7 +343,7 @@ func Charge(c *gin.Context) {
 		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge error "+ err.Error(), c)
+		ErrorJson("Charge error "+err.Error(), c)
 		return
 	}
 	body, _ := json.Marshal(msg)
@@ -458,7 +458,7 @@ func OnRedirectURL(url string, msg string, status string, c *gin.Context) {
 	_, _ = c.Writer.Write([]byte(html))
 }
 
-func OnSuccess(url string, msg string, token string, authNo string, c *gin.Context) {
+func onSuccessPayment(url string, msg string, token string, authNo string, c *gin.Context) {
 	var target string
 	if msg == "" {
 		target = fmt.Sprintf("%s?token=%s&authNo=%s", url, token, authNo)

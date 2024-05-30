@@ -381,7 +381,8 @@ WITH a AS (
 			LIMIT 1),
 			(SELECT country.name FROM civicrm_country country WHERE country.id = 
 				(SELECT address.country_id FROM civicrm_address address WHERE address.contact_id = co.contact_id AND address.is_primary = 1 LIMIT 1)
-			LIMIT 1) 
+			LIMIT 1),
+			''
 		) AS country,
 		IF(co.currency = 'USD', total_amount, IF(co.currency = 'EUR', total_amount * 1.1, total_amount / 4.13)) AS amount
 	FROM civicrm_contribution co
