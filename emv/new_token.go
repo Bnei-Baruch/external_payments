@@ -69,10 +69,14 @@ func NewToken(c *gin.Context) {
 		if request.Language == "HE" {
 			card.TopText = "BB כרטיסי אשראי"
 			card.BottomText = "© בני ברוך קבלה לעם"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "שמור"
 		} else if request.Language == "RU" {
 			card.LogoUrl = "https://checkout.kabbalah.info/kabRu.jpeg"
 			card.TopText = "Бней Барух Каббала лаАм"
 			card.BottomText = "© Бней Барух Каббала лаАм"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "Сохранить"
 		} else if request.Language == "ES" {
 			card.TopText = "Bnei Baruch Kabbalah laAm"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
@@ -91,23 +95,31 @@ func NewToken(c *gin.Context) {
 			card.CaptionSet["cs_total"] = "Total"
 			card.CaptionSet["cs_supported_cards"] = "Tarjetas aceptadas como pago en este sitio web"
 			card.CaptionSet["cs_mustfields"] = "Campos obligatorios"
-			card.CaptionSet["cs_submit"] = "Pagar ahora"
+			card.CaptionSet["cs_submit"] = "Ahorrar"
 			card.CaptionSet["cs_cancel"] = "Cancelar"
 		} else {
 			card.Language = "EN"
 			card.TopText = "BB Credit Cards"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "Save"
 		}
 	} else if request.Organization == "meshp18" {
 		if request.Language == "HE" {
 			card.TopText = "משפחה בחיבור כרטיסי אשראי"
 			card.BottomText = "© משפחה בחיבור"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "שמור"
 		} else if request.Language == "RU" {
 			card.TopText = "Бней Барух Каббала лаАм"
 			card.BottomText = "© Бней Барух Каббала лаАм"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "Сохранить"
 		} else {
 			card.TopText = "BB Credit Cards"
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
+			card.CaptionSet = make(map[string]string)
+			card.CaptionSet["cs_submit"] = "Save"
 		}
 		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	} else {
