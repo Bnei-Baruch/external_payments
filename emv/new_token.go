@@ -1,6 +1,7 @@
 package emv
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -163,6 +164,33 @@ func GoodToken(c *gin.Context) {
 
 	db.SetStatus(form.UserKey, "valid")
 
+	org, err := db.GetOrganization(form.UserKey)
+	if err != nil {
+		m := fmt.Sprintf("Good Token: GetOrganization Error %s", err.Error())
+		logMessage(m)
+		ErrorJson("GetOrganization: "+err.Error(), c)
+		return
+	}
+	card := &pelecard.PeleCard{}
+	if err := card.Init(org, types.Regular, true); err != nil {
+		m := fmt.Sprintf("Good Token: Approve Init Error %s", err.Error())
+		logMessage(m)
+
+		ErrorJson("Approve Init: "+err.Error(), c)
+		return
+	}
+	var msg map[string]interface{}
+	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
+		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
+		logMessage(m)
+
+		ErrorJson("GetTransaction: "+err.Error(), c)
+		return
+	}
+	var response = types.PaymentResponse{}
+	body, _ := json.Marshal(msg)
+	_ = json.Unmarshal(body, &response)
+
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
 		m := fmt.Sprintf("Good Payment: Load Request Error %s", err.Error())
@@ -172,12 +200,28 @@ func GoodToken(c *gin.Context) {
 		return
 	}
 	// redirect to GoodURL
-	onSuccessToken(request.GoodURL, form.Token, form.ParamX, c)
+	onSuccessToken(request.GoodURL, form, response, c)
 }
 
-func onSuccessToken(url string, token string, paramX string, c *gin.Context) {
-	target := fmt.Sprintf("%s?token=%s&paramX=%s", url, token, paramX)
-	html := "<script>window.location = '" + target + "';</script>"
+func onSuccessToken(url string, form types.PeleCardResponse, response types.PaymentResponse, c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
-	_, _ = c.Writer.Write([]byte(html))
+	_, _ = c.Writer.Write([]byte("<script>window.location = '"))
+	_, _ = c.Writer.Write([]byte(url))
+	_, _ = c.Writer.Write([]byte("?token="))
+	_, _ = c.Writer.Write([]byte(form.Token))
+	_, _ = c.Writer.Write([]byte("&paramX="))
+	_, _ = c.Writer.Write([]byte(form.ParamX))
+	_, _ = c.Writer.Write([]byte("&CardHebrewName="))
+	_, _ = c.Writer.Write([]byte(response.CardHebrewName))
+	_, _ = c.Writer.Write([]byte("&CreditCardBrand="))
+	_, _ = c.Writer.Write([]byte(response.CreditCardBrand))
+	_, _ = c.Writer.Write([]byte("&CreditCardCompanyIssuer="))
+	_, _ = c.Writer.Write([]byte(response.CreditCardCompanyIssuer))
+	_, _ = c.Writer.Write([]byte("&CreditCardNumber="))
+	_, _ = c.Writer.Write([]byte(response.CreditCardNumber))
+	_, _ = c.Writer.Write([]byte("&CreditCardExpDate="))
+	_, _ = c.Writer.Write([]byte(response.CreditCardExpDate))
+	_, _ = c.Writer.Write([]byte("&CreditCardCompanyClearer="))
+	_, _ = c.Writer.Write([]byte(response.CreditCardCompanyClearer))
+	_, _ = c.Writer.Write([]byte("';</script>"))
 }
