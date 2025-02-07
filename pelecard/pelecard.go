@@ -141,19 +141,17 @@ func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err
 	return fmt.Errorf("unable to find transaction around %s with approval %s", createDate, approvalNo), nil
 }
 
-func (p *PeleCard) GetRedirectUrl(ActionType types.ActionType) (err error, url string) {
-	//if withToken {
-	//	p.ActionType = "J5" // Approved Transaction -- DebitApproveNumber
-	//	p.CreateToken = "True"
-	//} else {
-	//	p.ActionType = "J4"
-	//}
-	p.ActionType = string(ActionType)
+func (p *PeleCard) GetRedirectUrl(actionType types.ActionType) (err error, url string) {
+	p.ActionType = string(actionType)
+	if actionType == types.Register {
+		p.Cvv2Field = "hide"
+	} else {
+		p.Cvv2Field = "must"
+	}
 	p.CreateToken = "True"
 
 	p.CardHolderName = "hide"
 	p.CustomerIdField = "hide"
-	p.Cvv2Field = "must"
 	p.EmailField = "hide"
 	p.TelField = "hide"
 	p.FeedbackDataTransferMethod = "POST"

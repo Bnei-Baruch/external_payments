@@ -71,6 +71,11 @@ func router(r *gin.Engine, isProd bool) {
 		payments.GET("/transaction", payment.GetTransaction)
 		payments.POST("/transaction", payment.GetTransaction)
 	}
+	renew := r.Group("/renew")
+	{
+		// regular payment
+		renew.POST("/renew-card", payment.RenewCard)
+	}
 	withToken := r.Group("/token")
 	{
 		// recurrent payments with token
