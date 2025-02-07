@@ -238,6 +238,8 @@ func RenewCard(c *gin.Context) {
 		if request.Language == "HE" {
 			card.TopText = "BB כרטיסי אשראי"
 			card.BottomText = "© בני ברוך קבלה לעם"
+			card.CaptionSet["cs_submit"] = "Renew"
+			card.CaptionSet["cs_cancel"] = "Cancel"
 		} else if request.Language == "RU" {
 			card.LogoUrl = "https://checkout.kabbalah.info/kabRu.jpeg"
 			card.TopText = "Бней Барух Каббала лаАм"
