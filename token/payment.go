@@ -167,7 +167,7 @@ func NewPayment(c *gin.Context) {
 		return
 	}
 
-	if err, url := card.GetRedirectUrl(types.Authorize); err != nil {
+	if err, url := card.GetRedirectUrl(types.Authorize, true); err != nil {
 		msg := fmt.Sprintf("New Payment: Error GetRedirectUrl %s", err.Error())
 		logMessage(msg)
 
@@ -204,7 +204,7 @@ func GoodPayment(c *gin.Context) {
 	}
 
 	db.SetStatus(form.UserKey, "in-process")
-	// bb_ext_requests
+	// civicrm_bb_ext_requests
 	org, err := db.GetOrganization(form.UserKey)
 	if err != nil {
 		m := fmt.Sprintf("Good Payment: GetOrganization Error %s", err.Error())

@@ -21,7 +21,9 @@ import (
 	"external_payments/db"
 	"external_payments/emv"
 	"external_payments/payment"
+	renewcard "external_payments/renew-card"
 	"external_payments/token"
+	"external_payments/utils"
 )
 
 func main() {
@@ -74,7 +76,10 @@ func router(r *gin.Engine, isProd bool) {
 	renew := r.Group("/renew")
 	{
 		// regular payment
-		renew.POST("/renew-card", payment.RenewCard)
+		renew.POST("/renew-card", renewcard.RenewCard)
+		renew.POST("/good", renewcard.GoodJ2)
+		renew.POST("/error", utils.ErrorPayment)
+		renew.POST("/cancel", utils.CancelPayment)
 	}
 	withToken := r.Group("/token")
 	{

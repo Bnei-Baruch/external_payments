@@ -34,7 +34,7 @@ type PeleCard struct {
 	ErrorUrl  string `json:",omitempty"`
 	CancelUrl string `json:",omitempty"`
 
-	Total       int `json:",omitempty"`
+	Total       int
 	Currency    int `json:",omitempty"`
 	MinPayments int `json:",omitempty"`
 	MaxPayments int `json:",omitempty"`
@@ -141,12 +141,12 @@ func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err
 	return fmt.Errorf("unable to find transaction around %s with approval %s", createDate, approvalNo), nil
 }
 
-func (p *PeleCard) GetRedirectUrl(actionType types.ActionType) (err error, url string) {
+func (p *PeleCard) GetRedirectUrl(actionType types.ActionType, requireCVV bool) (err error, url string) {
 	p.ActionType = string(actionType)
-	if actionType == types.Register {
-		p.Cvv2Field = "hide"
-	} else {
+	if requireCVV {
 		p.Cvv2Field = "must"
+	} else {
+		p.Cvv2Field = "hide"
 	}
 	p.CreateToken = "True"
 

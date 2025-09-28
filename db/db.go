@@ -21,7 +21,7 @@ const numOfUpdates = 20
 func initDB() (err error) {
 	schemas := []string{
 		heredoc.Doc(`
-	CREATE TABLE IF NOT EXISTS bb_ext_paypal (
+	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_paypal (
 		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
 		
 		name 			VARCHAR(255) NOT NULL,
@@ -47,7 +47,7 @@ func initDB() (err error) {
 		created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	) engine=InnoDB default charset utf8;`),
 		heredoc.Doc(`
-	CREATE TABLE IF NOT EXISTS bb_ext_requests (
+	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_requests (
 		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
 		
 		user_key	 	VARCHAR(255) NOT NULL,
@@ -78,7 +78,7 @@ func initDB() (err error) {
 		status			VARCHAR(255) NOT NULL DEFAULT 'new'
 	) engine=InnoDB default charset utf8;`),
 		heredoc.Doc(`
-	CREATE TABLE IF NOT EXISTS bb_ext_pelecard_responses (
+	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_pelecard_responses (
 		user_key	 			VARCHAR(255) NOT NULL,
 		pelecard_transaction_id VARCHAR(255),
 		pelecard_status_code 	VARCHAR(255),
@@ -86,7 +86,7 @@ func initDB() (err error) {
 		param_x 				VARCHAR(255)
 	) engine=InnoDB default charset utf8;`),
 		heredoc.Doc(`
-	CREATE TABLE IF NOT EXISTS bb_ext_payment_responses (
+	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),
 		card_hebrew_name 			VARCHAR(255),
@@ -171,7 +171,7 @@ func Disconnect() {
 
 func StorePaypal(p types.PaypalRegister) {
 	request := heredoc.Doc(`
-		INSERT INTO bb_ext_paypal (
+		INSERT INTO civicrm_bb_ext_paypal (
 			name, price, currency, email, phone, street, city, country, details, sku, language, 
 			reference, organization, transaction_id, payment_date, voucher_id, invoice
 		) VALUES (
@@ -193,7 +193,7 @@ func StorePaypal(p types.PaypalRegister) {
 
 func StoreRequest(p types.PaymentRequest) (err error) {
 	request := heredoc.Doc(`
-		INSERT INTO bb_ext_requests (
+		INSERT INTO civicrm_bb_ext_requests (
 			user_key, good_url, error_url, cancel_url, 
 			name, price, currency, email, phone, 
 			street, city, country, participants, details, sku, vat, installments, language, 
@@ -214,7 +214,7 @@ func StoreRequest(p types.PaymentRequest) (err error) {
 
 func SetStatus(userKey string, value string) {
 	request := heredoc.Doc(`
-		UPDATE bb_ext_requests SET status = ?, pstatus = ? 
+		UPDATE civicrm_bb_ext_requests SET status = ?, pstatus = ? 
 		WHERE user_key = ?
 		ORDER BY id DESC
 		LIMIT 1
@@ -224,7 +224,7 @@ func SetStatus(userKey string, value string) {
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
-	err = db.Get(p, "SELECT * FROM bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
+	err = db.Get(p, "SELECT * FROM civicrm_bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
 	return
 }
 
@@ -232,7 +232,7 @@ func GetOrganization(userKey string) (org string, err error) {
 	err = db.Get(&org,
 		heredoc.Doc(`
 			SELECT organization 
-			FROM bb_ext_requests 
+			FROM civicrm_bb_ext_requests 
 			WHERE user_key = ?
             ORDER BY id DESC
 			LIMIT 1
@@ -245,7 +245,7 @@ func Confirm(p *types.ConfirmRequest) bool {
 	err := db.Get(&request,
 		heredoc.Doc(`
 			SELECT * 
-			FROM bb_ext_requests 
+			FROM civicrm_bb_ext_requests 
 			WHERE status = 'valid' AND user_key = ? AND price = ? 
 				  AND currency = ? AND sku = ? AND reference = ? 
 				  AND organization = ?
@@ -258,7 +258,7 @@ func Confirm(p *types.ConfirmRequest) bool {
 
 func UpdateRequestTemp(userKey string, p types.PeleCardResponse) (err error) {
 	request := heredoc.Doc(`
-		INSERT INTO bb_ext_pelecard_responses (
+		INSERT INTO civicrm_bb_ext_pelecard_responses (
 			user_key, pelecard_transaction_id, pelecard_status_code, confirmation_key, param_x
 		) VALUES (
 			?, ?, ?, ?, ?
@@ -273,7 +273,7 @@ func UpdateRequestTemp(userKey string, p types.PeleCardResponse) (err error) {
 
 func UpdateRequest(p types.PaymentResponse) (err error) {
 	request := heredoc.Doc(`
-		INSERT INTO bb_ext_payment_responses (
+		INSERT INTO civicrm_bb_ext_payment_responses (
 			user_key,
 			transaction_id, card_hebrew_name, transaction_update_time, credit_card_abroad_card,
 			first_payment_total, credit_type, credit_card_brand, voucher_id, station_number,
@@ -323,7 +323,7 @@ func GetProject(projectName string) (project types.Project, err error) {
 	err = db.Get(&project,
 		heredoc.Doc(`
 			SELECT *
-			FROM bb_projects 
+			FROM civicrm_bb_projects 
 			WHERE name = ?
 			LIMIT 1
 		`), projectName)
