@@ -10,6 +10,8 @@ Logs all incoming headers and raw body to `/tmp/hmarket.log`. Used for inspectio
 ### `POST /hmarket/hw1`
 Processes a WooCommerce order JSON (sent by WooCommerce webhook).
 
+Orders with `status != "completed"` are ignored (returns `{"status":"ignored"}`).
+
 - **User**: created from `billing` fields. If `phone` is present, normalized to international format (`0` prefix → `972`) and used as dedup key (`uniq_phone`). Existing user found by `uniq_phone` is updated (phone and uniq_phone are immutable after creation). `blacklisted` is preserved on update.
 - **Activities**: one row per `line_items` entry, with `source` taken from `X-Wc-Webhook-Source` header.
 - **Subscription history**: if subscription status changes for an existing user, a `subscription` history record is created.
