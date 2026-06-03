@@ -76,6 +76,9 @@ func HW1(c *gin.Context) {
 	rawPhone  := order.Billing.Phone
 	uniqPhone := normalizePhone(rawPhone)
 
+	log.Printf("[hmarket/hw1] source=%s date=%s email=%s phone=%s uniq_phone=%s",
+		source, order.DateCreated, order.Billing.Email, rawPhone, uniqPhone)
+
 	// convert "2026-06-02T15:04:05" → "2026-06-02 15:04:05" for MySQL
 	createdAt := order.DateCreated
 	if t, err := time.Parse("2006-01-02T15:04:05", order.DateCreated); err == nil {
@@ -99,10 +102,11 @@ func HW1(c *gin.Context) {
 
 	userID, subChanged, newSubStatus, err := dbUpsertUser(user)
 	if err != nil {
-		log.Printf("[hmarket] hw1 upsert user error: %v", err)
+		log.Printf("[hmarket/hw1] upsert user error: %v", err)
 		c.JSON(500, gin.H{"error": "db error"})
 		return
 	}
+	log.Printf("[hmarket/hw1] user_id=%d sub_changed=%v new_sub=%v", userID, subChanged, newSubStatus)
 
 	if subChanged {
 		_ = dbCreateSubHistory(types.HMarketSubscriptionHistory{
@@ -113,6 +117,7 @@ func HW1(c *gin.Context) {
 	}
 
 	for _, item := range order.LineItems {
+		log.Printf("[hmarket/hw1] activity user_id=%d product_id=%d name=%q", userID, item.ProductID, item.Name)
 		err := dbCreateActivity(types.HMarketActivity{
 			UserID:    userID,
 			Source:    source,
@@ -122,7 +127,7 @@ func HW1(c *gin.Context) {
 			CreatedAt: createdAt,
 		})
 		if err != nil {
-			log.Printf("[hmarket] hw1 create activity error: %v", err)
+			log.Printf("[hmarket/hw1] create activity error: %v", err)
 		}
 	}
 
