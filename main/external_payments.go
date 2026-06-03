@@ -121,9 +121,12 @@ func router(r *gin.Engine, isProd bool) {
 	{
 		hmarketGroup.POST("/webhook", hmarket.Webhook)
 		hmarketGroup.POST("/hw1", hmarket.HW1)
-		hmarketGroup.GET("/export", hmarket.Export)
-		hmarketGroup.GET("/subscription-status", hmarket.SubscriptionStatus)
-		hmarketGroup.POST("/blacklist", hmarket.Blacklist)
+	}
+	hmarketAuth := r.Group("/hmarket", hmarket.AuthMiddleware())
+	{
+		hmarketAuth.GET("/export", hmarket.Export)
+		hmarketAuth.GET("/subscription-status", hmarket.SubscriptionStatus)
+		hmarketAuth.POST("/blacklist", hmarket.Blacklist)
 	}
 
 	paypal := r.Group("/paypal")
