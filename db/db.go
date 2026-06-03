@@ -119,9 +119,12 @@ func initDB() (err error) {
 		user_id			BIGINT NOT NULL,
 		description		TEXT NOT NULL,
 		status			TINYINT(1) NOT NULL DEFAULT 0,
+		change_type		VARCHAR(20) NOT NULL DEFAULT '',
 		created_at		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (user_id) REFERENCES hmarket_users(id)
 	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
+	ALTER TABLE hmarket_subscription_history ADD COLUMN IF NOT EXISTS change_type VARCHAR(20) NOT NULL DEFAULT '';`),
 		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,

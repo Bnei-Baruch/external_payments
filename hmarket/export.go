@@ -101,7 +101,7 @@ func SubscriptionStatus(c *gin.Context) {
 			if ch.Status {
 				status = "true"
 			}
-			lines = append(lines, fmt.Sprintf("%s | %s | %s", ch.CreatedAt, status, ch.Description))
+			lines = append(lines, fmt.Sprintf("%s | %s | %s | %s", ch.CreatedAt, ch.ChangeType, status, ch.Description))
 		}
 
 		values := []any{

@@ -37,6 +37,7 @@ func Blacklist(c *gin.Context) {
 		UserID:      req.UserID,
 		Description: req.Description,
 		Status:      req.Blacklist,
+		ChangeType:  "blacklist",
 	})
 
 	log.Printf("[hmarket/blacklist] user_id=%d blacklist=%v", req.UserID, req.Blacklist)

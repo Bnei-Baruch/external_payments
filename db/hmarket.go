@@ -79,7 +79,7 @@ func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
 
 func GetHMarketSubHistory() (rows []types.HMarketSubHistoryRecord, err error) {
 	err = db.Select(&rows, `
-		SELECT id, user_id, description, status, created_at
+		SELECT id, user_id, description, status, change_type, created_at
 		FROM hmarket_subscription_history
 		ORDER BY user_id, created_at
 	`)
@@ -100,8 +100,8 @@ func BlacklistHMarketUser(userID int64, blacklist bool) (found bool, err error) 
 
 func CreateHMarketSubscriptionHistory(h types.HMarketSubscriptionHistory) error {
 	_, err := db.Exec(
-		`INSERT INTO hmarket_subscription_history (user_id, description, status) VALUES (?, ?, ?)`,
-		h.UserID, h.Description, h.Status,
+		`INSERT INTO hmarket_subscription_history (user_id, description, status, change_type) VALUES (?, ?, ?, ?)`,
+		h.UserID, h.Description, h.Status, h.ChangeType,
 	)
 	return err
 }

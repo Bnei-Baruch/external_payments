@@ -29,6 +29,7 @@ type HMarketSubscriptionHistory struct {
 	UserID      int64  `db:"user_id"`
 	Description string `db:"description"`
 	Status      bool   `db:"status"`
+	ChangeType  string `db:"change_type"`
 }
 
 type HMarketExportRow struct {
@@ -55,5 +56,6 @@ type HMarketSubHistoryRecord struct {
 	UserID      int64  `db:"user_id"`
 	Description string `db:"description"`
 	Status      bool   `db:"status"`
+	ChangeType  string `db:"change_type"`
 	CreatedAt   string `db:"created_at"`
 }

@@ -113,6 +113,7 @@ func HW1(c *gin.Context) {
 			UserID:      userID,
 			Description: fmt.Sprintf("subscription changed to %v due to %s", newSubStatus, source),
 			Status:      newSubStatus,
+			ChangeType:  "subscription",
 		})
 	}
 
