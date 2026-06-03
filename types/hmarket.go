@@ -30,3 +30,27 @@ type HMarketSubscriptionHistory struct {
 	Description string `db:"description"`
 	Status      bool   `db:"status"`
 }
+
+type HMarketExportRow struct {
+	UserID    int64  `db:"user_id"`
+	FirstName string `db:"first_name"`
+	LastName  string `db:"last_name"`
+	Phone     string `db:"phone"`
+	Email     string `db:"email"`
+	Company   string `db:"company"`
+	City      string `db:"city"`
+	Country   string `db:"country"`
+	Source    string `db:"source"`
+	Name      string `db:"name"`
+	ProductID int64  `db:"product_id"`
+	SKU       string `db:"sku"`
+	CreatedAt string `db:"created_at"`
+}
+
+type HMarketSubHistoryRecord struct {
+	ID          int64  `db:"id"`
+	UserID      int64  `db:"user_id"`
+	Description string `db:"description"`
+	Status      bool   `db:"status"`
+	CreatedAt   string `db:"created_at"`
+}

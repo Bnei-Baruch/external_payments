@@ -47,6 +47,42 @@ func CreateHMarketActivity(a types.HMarketActivity) error {
 	return err
 }
 
+func GetHMarketUsers() (users []types.HMarketUser, err error) {
+	err = db.Select(&users, `SELECT * FROM hmarket_users ORDER BY id`)
+	return
+}
+
+func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
+	err = db.Select(&rows, `
+		SELECT u.id              AS user_id,
+		       u.first_name,
+		       u.last_name,
+		       COALESCE(u.phone, '') AS phone,
+		       u.email,
+		       COALESCE(u.company, '') AS company,
+		       u.city,
+		       u.country,
+		       a.source,
+		       a.name,
+		       a.product_id,
+		       COALESCE(a.sku, '') AS sku,
+		       a.created_at
+		FROM hmarket_users u
+		JOIN hmarket_activities a ON a.user_id = u.id
+		ORDER BY u.id, a.created_at
+	`)
+	return
+}
+
+func GetHMarketSubHistory() (rows []types.HMarketSubHistoryRecord, err error) {
+	err = db.Select(&rows, `
+		SELECT id, user_id, description, status, created_at
+		FROM hmarket_subscription_history
+		ORDER BY user_id, created_at
+	`)
+	return
+}
+
 func CreateHMarketSubscriptionHistory(h types.HMarketSubscriptionHistory) error {
 	_, err := db.Exec(
 		`INSERT INTO hmarket_subscription_history (user_id, description, status) VALUES (?, ?, ?)`,
