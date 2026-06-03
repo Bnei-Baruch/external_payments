@@ -123,6 +123,7 @@ func router(r *gin.Engine, isProd bool) {
 		hmarketGroup.POST("/hw1", hmarket.HW1)
 		hmarketGroup.GET("/export", hmarket.Export)
 		hmarketGroup.GET("/subscription-status", hmarket.SubscriptionStatus)
+		hmarketGroup.POST("/blacklist", hmarket.Blacklist)
 	}
 
 	paypal := r.Group("/paypal")

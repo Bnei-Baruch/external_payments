@@ -24,8 +24,8 @@ func Export(c *gin.Context) {
 	sheet := "Sheet1"
 
 	headers := []string{
-		"ID", "First Name", "Last Name", "Phone", "Email",
-		"Company", "City", "Country",
+		"ID", "First Name", "Last Name", "Phone", "Uniq Phone", "Email",
+		"Company", "City", "Country", "Subscribed", "Blacklisted",
 		"Source", "Product Name", "Product ID", "SKU", "Created At",
 	}
 	for i, h := range headers {
@@ -36,8 +36,8 @@ func Export(c *gin.Context) {
 	for i, row := range rows {
 		r := i + 2
 		values := []any{
-			row.UserID, row.FirstName, row.LastName, row.Phone, row.Email,
-			row.Company, row.City, row.Country,
+			row.UserID, row.FirstName, row.LastName, row.Phone, row.UniqPhone, row.Email,
+			row.Company, row.City, row.Country, row.Subscribed, row.Blacklisted,
 			row.Source, row.Name, row.ProductID, row.SKU, row.CreatedAt,
 		}
 		for j, v := range values {

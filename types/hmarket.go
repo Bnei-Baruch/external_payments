@@ -32,19 +32,22 @@ type HMarketSubscriptionHistory struct {
 }
 
 type HMarketExportRow struct {
-	UserID    int64  `db:"user_id"`
-	FirstName string `db:"first_name"`
-	LastName  string `db:"last_name"`
-	Phone     string `db:"phone"`
-	Email     string `db:"email"`
-	Company   string `db:"company"`
-	City      string `db:"city"`
-	Country   string `db:"country"`
-	Source    string `db:"source"`
-	Name      string `db:"name"`
-	ProductID int64  `db:"product_id"`
-	SKU       string `db:"sku"`
-	CreatedAt string `db:"created_at"`
+	UserID      int64  `db:"user_id"`
+	FirstName   string `db:"first_name"`
+	LastName    string `db:"last_name"`
+	Phone       string `db:"phone"`
+	UniqPhone   string `db:"uniq_phone"`
+	Email       string `db:"email"`
+	Company     string `db:"company"`
+	City        string `db:"city"`
+	Country     string `db:"country"`
+	Subscribed  bool   `db:"subscribed"`
+	Blacklisted bool   `db:"blacklisted"`
+	Source      string `db:"source"`
+	Name        string `db:"name"`
+	ProductID   int64  `db:"product_id"`
+	SKU         string `db:"sku"`
+	CreatedAt   string `db:"created_at"`
 }
 
 type HMarketSubHistoryRecord struct {

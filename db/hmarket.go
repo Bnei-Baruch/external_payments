@@ -54,18 +54,21 @@ func GetHMarketUsers() (users []types.HMarketUser, err error) {
 
 func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
 	err = db.Select(&rows, `
-		SELECT u.id              AS user_id,
+		SELECT u.id                      AS user_id,
 		       u.first_name,
 		       u.last_name,
-		       COALESCE(u.phone, '') AS phone,
+		       COALESCE(u.phone, '')      AS phone,
+		       COALESCE(u.uniq_phone, '') AS uniq_phone,
 		       u.email,
-		       COALESCE(u.company, '') AS company,
+		       COALESCE(u.company, '')    AS company,
 		       u.city,
 		       u.country,
+		       u.subscribed,
+		       u.blacklisted,
 		       a.source,
 		       a.name,
 		       a.product_id,
-		       COALESCE(a.sku, '') AS sku,
+		       COALESCE(a.sku, '')        AS sku,
 		       a.created_at
 		FROM hmarket_users u
 		JOIN hmarket_activities a ON a.user_id = u.id
@@ -81,6 +84,18 @@ func GetHMarketSubHistory() (rows []types.HMarketSubHistoryRecord, err error) {
 		ORDER BY user_id, created_at
 	`)
 	return
+}
+
+func BlacklistHMarketUser(userID int64, blacklist bool) (found bool, err error) {
+	res, e := db.Exec(
+		`UPDATE hmarket_users SET blacklisted=? WHERE id=?`,
+		blacklist, userID,
+	)
+	if e != nil {
+		return false, e
+	}
+	rows, _ := res.RowsAffected()
+	return rows > 0, nil
 }
 
 func CreateHMarketSubscriptionHistory(h types.HMarketSubscriptionHistory) error {
