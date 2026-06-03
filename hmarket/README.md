@@ -26,7 +26,8 @@ Orders with `status != "completed"` are ignored (returns `{"status":"ignored"}`)
 
 - **User**: created from `billing` fields. If `phone` is present, normalized to international format (`0` prefix → `972`) and used as dedup key (`uniq_phone`). Existing user found by `uniq_phone` is updated (phone and uniq_phone are immutable after creation). `blacklisted` is preserved on update.
 - **Activities**: one row per `line_items` entry, with `source` taken from `X-Wc-Webhook-Source` header.
-- **Subscription history**: if subscription status changes for an existing user, a `subscription` history record is created.
+- **Subscription**: determined from `meta_data` — key `cf_extra_consent` or `_cf_extra_consent`, value `yes` = subscribed. If absent or `no` = not subscribed.
+- **Subscription history**: recorded when (a) new user is created with subscription `yes` — logged as "new subscriber via \<source\>", or (b) existing user's subscription status changes.
 
 ### `GET /hmarket/export`
 Downloads an Excel file with one row per activity:
