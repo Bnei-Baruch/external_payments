@@ -84,6 +84,10 @@ func SubscriptionStatus(c *gin.Context) {
 		f.SetCellValue(sheet, cell, h)
 	}
 
+	wrapStyle, _ := f.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{WrapText: true},
+	})
+
 	for ri, u := range users {
 		r := ri + 2
 		phone := ""
@@ -109,6 +113,9 @@ func SubscriptionStatus(c *gin.Context) {
 			cell, _ := excelize.CoordinatesToCellName(j+1, r)
 			f.SetCellValue(sheet, cell, v)
 		}
+
+		historyCell, _ := excelize.CoordinatesToCellName(8, r)
+		f.SetCellStyle(sheet, historyCell, historyCell, wrapStyle)
 	}
 
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
