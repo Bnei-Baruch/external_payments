@@ -2,6 +2,18 @@
 
 WooCommerce webhook integration for HMarket orders. Stores customers and purchase activity, tracks subscription and blacklist status changes.
 
+## Authentication
+
+`/hmarket/export`, `/hmarket/subscription-status`, and `/hmarket/blacklist` require a Bearer token:
+
+```
+Authorization: Bearer <HMARKET_API_TOKEN>
+```
+
+`HMARKET_API_TOKEN` is set in the server `.env`. Requests without a valid token receive `401 Unauthorized`.
+
+`/hmarket/webhook` and `/hmarket/hw1` do not require this token. `/hmarket/hw1` verifies the WooCommerce webhook signature via `X-Wc-Webhook-Signature` and `HMARKET_SECRET`.
+
 ## Endpoints
 
 ### `POST /hmarket/webhook`
