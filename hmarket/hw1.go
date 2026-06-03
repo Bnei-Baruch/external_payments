@@ -33,6 +33,7 @@ type wcLineItem struct {
 
 type wcOrder struct {
 	DateCreated string       `json:"date_created"`
+	Status      string       `json:"status"`
 	Billing     wcBilling    `json:"billing"`
 	LineItems   []wcLineItem `json:"line_items"`
 }
@@ -69,6 +70,12 @@ func HW1(c *gin.Context) {
 	if err := c.ShouldBindJSON(&order); err != nil {
 		log.Printf("[hmarket] hw1 parse error: %v", err)
 		c.JSON(400, gin.H{"error": "invalid JSON"})
+		return
+	}
+
+	if order.Status != "completed" {
+		log.Printf("[hmarket/hw1] skipped: status=%q", order.Status)
+		c.JSON(200, gin.H{"status": "ignored"})
 		return
 	}
 
