@@ -3,6 +3,7 @@ package hmarket
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/xuri/excelize/v2"
@@ -69,26 +70,15 @@ func SubscriptionStatus(c *gin.Context) {
 	}
 
 	byUser := make(map[int64][]types.HMarketSubHistoryRecord)
-	maxChanges := 0
 	for _, h := range history {
 		byUser[h.UserID] = append(byUser[h.UserID], h)
-		if len(byUser[h.UserID]) > maxChanges {
-			maxChanges = len(byUser[h.UserID])
-		}
 	}
 
 	f := excelize.NewFile()
 	defer f.Close()
 	sheet := "Sheet1"
 
-	headers := []string{"ID", "First Name", "Last Name", "Phone", "Email", "Subscribed", "Blacklisted"}
-	for i := 1; i <= maxChanges; i++ {
-		headers = append(headers,
-			fmt.Sprintf("Change %d Status", i),
-			fmt.Sprintf("Change %d Date", i),
-			fmt.Sprintf("Change %d Description", i),
-		)
-	}
+	headers := []string{"ID", "First Name", "Last Name", "Phone", "Email", "Subscribed", "Blacklisted", "History"}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
 		f.SetCellValue(sheet, cell, h)
@@ -100,9 +90,20 @@ func SubscriptionStatus(c *gin.Context) {
 		if u.Phone != nil {
 			phone = *u.Phone
 		}
-		values := []any{u.ID, u.FirstName, u.LastName, phone, u.Email, u.Subscribed, u.Blacklisted}
+
+		var lines []string
 		for _, ch := range byUser[u.ID] {
-			values = append(values, ch.Status, ch.CreatedAt, ch.Description)
+			status := "false"
+			if ch.Status {
+				status = "true"
+			}
+			lines = append(lines, fmt.Sprintf("%s | %s | %s", ch.CreatedAt, status, ch.Description))
+		}
+
+		values := []any{
+			u.ID, u.FirstName, u.LastName, phone, u.Email,
+			u.Subscribed, u.Blacklisted,
+			strings.Join(lines, "\n"),
 		}
 		for j, v := range values {
 			cell, _ := excelize.CoordinatesToCellName(j+1, r)
