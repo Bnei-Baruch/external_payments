@@ -6,7 +6,7 @@ import (
 	"external_payments/types"
 )
 
-func UpsertHMarketUser(u types.HMarketUser) (userID int64, subChanged bool, newSubStatus bool, err error) {
+func UpsertHMarketUser(u types.HMarketUser) (userID int64, isNew bool, subChanged bool, newSubStatus bool, err error) {
 	if u.UniqPhone != nil {
 		var existing types.HMarketUser
 		e := db.Get(&existing, "SELECT * FROM hmarket_users WHERE uniq_phone = ? LIMIT 1", *u.UniqPhone)
@@ -36,6 +36,7 @@ func UpsertHMarketUser(u types.HMarketUser) (userID int64, subChanged bool, newS
 		return
 	}
 	userID, err = res.LastInsertId()
+	isNew = true
 	return
 }
 

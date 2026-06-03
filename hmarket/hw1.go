@@ -37,11 +37,17 @@ type wcLineItem struct {
 	SKU       string `json:"sku"`
 }
 
+type wcMetaData struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type wcOrder struct {
 	DateCreated string       `json:"date_created"`
 	Status      string       `json:"status"`
 	Billing     wcBilling    `json:"billing"`
 	LineItems   []wcLineItem `json:"line_items"`
+	MetaData    []wcMetaData `json:"meta_data"`
 }
 
 // overridable in tests
@@ -69,6 +75,15 @@ func strPtr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func extractSubscription(meta []wcMetaData) bool {
+	for _, m := range meta {
+		if m.Key == "cf_extra_consent" || m.Key == "_cf_extra_consent" {
+			return m.Value == "yes"
+		}
+	}
+	return false
 }
 
 func verifySignature(body []byte, signature string) bool {
@@ -111,9 +126,10 @@ func HW1(c *gin.Context) {
 	source    := c.GetHeader("X-Wc-Webhook-Source")
 	rawPhone  := order.Billing.Phone
 	uniqPhone := normalizePhone(rawPhone)
+	subscribed := extractSubscription(order.MetaData)
 
-	log.Printf("[hmarket/hw1] source=%s date=%s email=%s phone=%s uniq_phone=%s",
-		source, order.DateCreated, order.Billing.Email, rawPhone, uniqPhone)
+	log.Printf("[hmarket/hw1] source=%s date=%s email=%s phone=%s uniq_phone=%s subscribed=%v",
+		source, order.DateCreated, order.Billing.Email, rawPhone, uniqPhone, subscribed)
 
 	// convert "2026-06-02T15:04:05" → "2026-06-02 15:04:05" for MySQL
 	createdAt := order.DateCreated
@@ -132,19 +148,26 @@ func HW1(c *gin.Context) {
 		Email:       order.Billing.Email,
 		Phone:       strPtr(rawPhone),
 		UniqPhone:   strPtr(uniqPhone),
-		Subscribed:  false,
+		Subscribed:  subscribed,
 		Blacklisted: false,
 	}
 
-	userID, subChanged, newSubStatus, err := dbUpsertUser(user)
+	userID, isNew, subChanged, newSubStatus, err := dbUpsertUser(user)
 	if err != nil {
 		log.Printf("[hmarket/hw1] upsert user error: %v", err)
 		c.JSON(500, gin.H{"error": "db error"})
 		return
 	}
-	log.Printf("[hmarket/hw1] user_id=%d sub_changed=%v new_sub=%v", userID, subChanged, newSubStatus)
+	log.Printf("[hmarket/hw1] user_id=%d is_new=%v sub_changed=%v new_sub=%v", userID, isNew, subChanged, newSubStatus)
 
-	if subChanged {
+	if isNew && subscribed {
+		_ = dbCreateSubHistory(types.HMarketSubscriptionHistory{
+			UserID:      userID,
+			Description: fmt.Sprintf("new subscriber via %s", source),
+			Status:      true,
+			ChangeType:  "subscription",
+		})
+	} else if subChanged {
 		_ = dbCreateSubHistory(types.HMarketSubscriptionHistory{
 			UserID:      userID,
 			Description: fmt.Sprintf("subscription changed to %v due to %s", newSubStatus, source),
