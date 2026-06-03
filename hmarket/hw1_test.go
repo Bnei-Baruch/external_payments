@@ -1,6 +1,7 @@
 package hmarket
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,10 +47,11 @@ func TestExtractSubscription(t *testing.T) {
 		meta []wcMetaData
 		want bool
 	}{
-		{[]wcMetaData{{"_cf_extra_consent", "yes"}}, true},
-		{[]wcMetaData{{"cf_extra_consent", "yes"}}, true},
-		{[]wcMetaData{{"_cf_extra_consent", "no"}}, false},
-		{[]wcMetaData{{"other_key", "yes"}}, false},
+		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`"yes"`)}}, true},
+		{[]wcMetaData{{"cf_extra_consent", json.RawMessage(`"yes"`)}}, true},
+		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`"no"`)}}, false},
+		{[]wcMetaData{{"other_key", json.RawMessage(`"yes"`)}}, false},
+		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`{"nested":"object"}`)}}, false},
 		{[]wcMetaData{}, false},
 	}
 	for _, tc := range cases {

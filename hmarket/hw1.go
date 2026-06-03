@@ -38,8 +38,8 @@ type wcLineItem struct {
 }
 
 type wcMetaData struct {
-	Key   string `json:"key"`
-	Value string `json:"value"`
+	Key   string          `json:"key"`
+	Value json.RawMessage `json:"value"`
 }
 
 type wcOrder struct {
@@ -80,7 +80,10 @@ func strPtr(s string) *string {
 func extractSubscription(meta []wcMetaData) bool {
 	for _, m := range meta {
 		if m.Key == "cf_extra_consent" || m.Key == "_cf_extra_consent" {
-			return m.Value == "yes"
+			var s string
+			if err := json.Unmarshal(m.Value, &s); err == nil {
+				return s == "yes"
+			}
 		}
 	}
 	return false
@@ -104,8 +107,9 @@ func HW1(c *gin.Context) {
 		return
 	}
 
-	if !verifySignature(body, c.GetHeader("X-Wc-Webhook-Signature")) {
-		log.Printf("[hmarket/hw1] invalid signature")
+	sig := c.GetHeader("X-Wc-Webhook-Signature")
+	if !verifySignature(body, sig) {
+		log.Printf("[hmarket/hw1] invalid signature: sig=%s body=%s", sig, string(body))
 		c.JSON(401, gin.H{"error": "invalid signature"})
 		return
 	}
