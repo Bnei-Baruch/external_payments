@@ -1,8 +1,14 @@
 package hmarket
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -65,9 +71,32 @@ func strPtr(s string) *string {
 	return &s
 }
 
+func verifySignature(body []byte, signature string) bool {
+	secret := os.Getenv("HMARKET_SECRET")
+	if secret == "" {
+		return true
+	}
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(body)
+	expected := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(expected), []byte(signature))
+}
+
 func HW1(c *gin.Context) {
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "read error"})
+		return
+	}
+
+	if !verifySignature(body, c.GetHeader("X-Wc-Webhook-Signature")) {
+		log.Printf("[hmarket/hw1] invalid signature")
+		c.JSON(401, gin.H{"error": "invalid signature"})
+		return
+	}
+
 	var order wcOrder
-	if err := c.ShouldBindJSON(&order); err != nil {
+	if err := json.Unmarshal(body, &order); err != nil {
 		log.Printf("[hmarket] hw1 parse error: %v", err)
 		c.JSON(400, gin.H{"error": "invalid JSON"})
 		return
