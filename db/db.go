@@ -86,6 +86,43 @@ func initDB() (err error) {
 		param_x 				VARCHAR(255)
 	) engine=InnoDB default charset utf8;`),
 		heredoc.Doc(`
+	CREATE TABLE IF NOT EXISTS hmarket_users (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		first_name		VARCHAR(255) NOT NULL,
+		last_name		VARCHAR(255) NOT NULL,
+		company			VARCHAR(255),
+		address_1		VARCHAR(255) NOT NULL,
+		address_2		VARCHAR(255),
+		city			VARCHAR(255) NOT NULL,
+		country			VARCHAR(255) NOT NULL,
+		email			VARCHAR(255) NOT NULL,
+		phone			VARCHAR(255),
+		uniq_phone		VARCHAR(255),
+		subscribed		TINYINT(1) NOT NULL DEFAULT 0,
+		blacklisted		TINYINT(1) NOT NULL DEFAULT 0,
+		UNIQUE KEY uniq_phone (uniq_phone)
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
+	CREATE TABLE IF NOT EXISTS hmarket_activities (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		user_id			BIGINT NOT NULL,
+		source			VARCHAR(255) NOT NULL,
+		name			VARCHAR(255) NOT NULL,
+		product_id		BIGINT NOT NULL,
+		sku				VARCHAR(255),
+		created_at		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES hmarket_users(id)
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
+	CREATE TABLE IF NOT EXISTS hmarket_subscription_history (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		user_id			BIGINT NOT NULL,
+		description		TEXT NOT NULL,
+		status			TINYINT(1) NOT NULL DEFAULT 0,
+		created_at		TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		FOREIGN KEY (user_id) REFERENCES hmarket_users(id)
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),

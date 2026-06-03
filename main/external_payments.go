@@ -1,5 +1,5 @@
 // once: go mod init external_payments
-// CGO_ENABLED=0 go build -o external_payments main/* && strip external_payments && upx -9 external_payments && cp external_payments /media/sf_D_DRIVE/projects/bbpriority/
+// CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o external_payments main/* && upx -9 --force-macos external_payments
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 
 package main
@@ -20,6 +20,7 @@ import (
 	"external_payments/counters"
 	"external_payments/db"
 	"external_payments/emv"
+	"external_payments/hmarket"
 	"external_payments/payment"
 	renewcard "external_payments/renew-card"
 	"external_payments/token"
@@ -116,6 +117,12 @@ func router(r *gin.Engine, isProd bool) {
 		withEmv.POST("/good_token", emv.GoodToken)
 	}
 
+	hmarketGroup := r.Group("/hmarket")
+	{
+		hmarketGroup.POST("/webhook", hmarket.Webhook)
+		hmarketGroup.POST("/hw1", hmarket.HW1)
+	}
+
 	paypal := r.Group("/paypal")
 	{
 		paypal.GET("/confirm", ConfirmPaypal)
@@ -159,3 +166,4 @@ func CORSMiddleware() gin.HandlerFunc {
 		}
 	}
 }
+
