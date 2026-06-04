@@ -2,6 +2,8 @@
 // CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o external_payments main/* && upx -9 --force-macos external_payments
 // curl -X POST -H "Content-Type: application/json" -d @request.json https://checkout.kbb1.com/payments/new
 
+//go:debug tlsrsakex=1
+
 package main
 
 import (

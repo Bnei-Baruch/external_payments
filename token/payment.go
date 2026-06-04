@@ -300,7 +300,7 @@ func GoodPayment(c *gin.Context) {
 		ParamX:              form.ParamX,
 		TotalX100:           fmt.Sprintf("%d", int(request.Price*100.00)),
 	}
-	if err := card.Init(org, types.Recurrent, true); err != nil {
+	if err := card.Init(org, types.Regular, true); err != nil {
 		m := fmt.Sprintf("Good Payment: ApproveInit %s", err.Error())
 		logMessage(m)
 
