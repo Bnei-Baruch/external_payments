@@ -1,6 +1,7 @@
 package hmarket
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
@@ -104,6 +105,12 @@ func HW1(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(400, gin.H{"error": "read error"})
+		return
+	}
+
+	// WooCommerce sends an unsigned ping (body "webhook_id=N") when saving a webhook — return 200 so it stays active
+	if bytes.HasPrefix(body, []byte("webhook_id=")) {
+		c.JSON(200, gin.H{"status": "ok"})
 		return
 	}
 
