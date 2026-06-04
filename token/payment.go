@@ -307,7 +307,7 @@ func GoodPayment(c *gin.Context) {
 		ErrorJson("Approve Init: "+err.Error(), c)
 		return
 	}
-	if err, msg = card.ChargeByToken(true); err != nil {
+	if err, msg = card.ChargeByToken(false); err != nil {
 		m := fmt.Sprintf("Good Payment: First Charge %s", err.Error())
 		logMessage(m)
 
