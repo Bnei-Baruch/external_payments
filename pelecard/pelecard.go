@@ -15,6 +15,10 @@ import (
 	"external_payments/types"
 )
 
+var pelecardClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
 type PeleCard struct {
 	Url     string `json:"-"`
 	Service string `json:"-"`
@@ -223,7 +227,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 	}
 	params, _ := json.Marshal(v)
 	fmt.Println("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", v)
-	resp, err := http.Post("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		fmt.Println("Err != nil :(", err)
 		return
@@ -251,7 +255,7 @@ func (p *PeleCard) services(action string, data *service) (err error, result map
 	msg = fmt.Sprintf("----------> SERVICE: %s\n%s\n", url, params)
 	_, _ = errLogger.Write([]byte(msg))
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
@@ -283,7 +287,7 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	msg = fmt.Sprintf("----------> SERVICE: %s\n%s\n", url, params)
 	_, _ = errLogger.Write([]byte(msg))
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
@@ -312,7 +316,7 @@ func (p *PeleCard) connect(action string) (err error, result map[string]interfac
 	errLogger := gin.DefaultErrorWriter
 	m := fmt.Sprintf("----------> CONNECT: %s\n%#v\n", url, p)
 	_, _ = errLogger.Write([]byte(m))
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
@@ -355,7 +359,7 @@ func (p *PeleCard) connectArr(action string) (err error, result []map[string]int
 	errLogger := gin.DefaultErrorWriter
 	m := fmt.Sprintf("----------> CONNECT: %s\n%#v\n", url, p)
 	_, _ = errLogger.Write([]byte(m))
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
 	}
