@@ -27,7 +27,7 @@ func Export(c *gin.Context) {
 	headers := []string{
 		"ID", "First Name", "Last Name", "Phone", "Uniq Phone", "Email",
 		"Company", "City", "Country", "Subscribed", "Blacklisted",
-		"Source", "Product Name", "Product ID", "SKU", "Created At",
+		"Source", "Product Name", "Product ID", "SKU", "Created At", "Circle",
 	}
 	for i, h := range headers {
 		cell, _ := excelize.CoordinatesToCellName(i+1, 1)
@@ -39,7 +39,7 @@ func Export(c *gin.Context) {
 		values := []any{
 			row.UserID, row.FirstName, row.LastName, row.Phone, row.UniqPhone, row.Email,
 			row.Company, row.City, row.Country, row.Subscribed, row.Blacklisted,
-			row.Source, row.Name, row.ProductID, row.SKU, row.CreatedAt,
+			row.Source, row.Name, row.ProductID, row.SKU, row.CreatedAt, row.Circle,
 		}
 		for j, v := range values {
 			cell, _ := excelize.CoordinatesToCellName(j+1, r)

@@ -49,6 +49,7 @@ type HMarketExportRow struct {
 	ProductID   int64  `db:"product_id"`
 	SKU         string `db:"sku"`
 	CreatedAt   string `db:"created_at"`
+	Circle      string `db:"circle"`
 }
 
 type HMarketSubHistoryRecord struct {

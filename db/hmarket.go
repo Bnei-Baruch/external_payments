@@ -70,7 +70,24 @@ func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
 		       a.name,
 		       a.product_id,
 		       COALESCE(a.sku, '')        AS sku,
-		       a.created_at
+		       a.created_at,
+		       COALESCE((
+		           SELECT ov.label_en_US
+		           FROM civicrm_phone cp
+		           JOIN civicrm_value_member_data_223 m ON m.entity_id = cp.contact_id
+		           JOIN civicrm_option_value ov ON ov.option_group_id = 606 AND ov.value = m.dropdown_circle_1708
+		           WHERE u.uniq_phone IS NOT NULL AND u.uniq_phone != ''
+		             AND (REGEXP_REPLACE(cp.phone, '[^0-9]', '') = u.uniq_phone
+		                  OR REGEXP_REPLACE(cp.phone, '[^0-9]', '') = CONCAT('0', SUBSTR(u.uniq_phone, 4)))
+		           LIMIT 1
+		       ), (
+		           SELECT ov.label_en_US
+		           FROM civicrm_email ce
+		           JOIN civicrm_value_member_data_223 m ON m.entity_id = ce.contact_id
+		           JOIN civicrm_option_value ov ON ov.option_group_id = 606 AND ov.value = m.dropdown_circle_1708
+		           WHERE ce.email = u.email
+		           LIMIT 1
+		       ), '') AS circle
 		FROM hmarket_users u
 		JOIN hmarket_activities a ON a.user_id = u.id
 		ORDER BY u.id, a.created_at
