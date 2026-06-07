@@ -2,7 +2,7 @@ package pelecard
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -261,7 +261,7 @@ func (p *PeleCard) services(action string, data *service) (err error, result map
 	}
 	defer resp.Body.Close()
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	json.UnmarshalRead(resp.Body, &body)
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
@@ -293,7 +293,7 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	}
 	defer resp.Body.Close()
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	json.UnmarshalRead(resp.Body, &body)
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
@@ -322,7 +322,7 @@ func (p *PeleCard) connect(action string) (err error, result map[string]any) {
 	}
 	defer resp.Body.Close()
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	json.UnmarshalRead(resp.Body, &body)
 	if urlOk, ok := body["URL"]; ok {
 		if urlOk.(string) != "" {
 			result = make(map[string]any)
@@ -365,7 +365,7 @@ func (p *PeleCard) connectArr(action string) (err error, result []map[string]any
 	}
 	defer resp.Body.Close()
 	var body map[string]any
-	json.NewDecoder(resp.Body).Decode(&body)
+	json.UnmarshalRead(resp.Body, &body)
 	if msg, ok := body["Error"]; ok {
 		msg := msg.(map[string]any)
 		if errCode, ok := msg["ErrCode"]; ok {

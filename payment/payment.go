@@ -1,7 +1,7 @@
 package payment
 
 import (
-	"encoding/json"
+	"encoding/json/v2"
 	"fmt"
 	"net/http"
 	"runtime/debug"

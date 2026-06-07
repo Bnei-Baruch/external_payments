@@ -5,7 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"io"
 	"log"
@@ -40,7 +41,7 @@ type wcLineItem struct {
 
 type wcMetaData struct {
 	Key   string          `json:"key"`
-	Value json.RawMessage `json:"value"`
+	Value jsontext.Value `json:"value"`
 }
 
 type wcOrder struct {
