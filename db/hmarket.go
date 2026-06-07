@@ -77,15 +77,15 @@ func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
 		           JOIN civicrm_value_member_data_223 m ON m.entity_id = cp.contact_id
 		           JOIN civicrm_option_value ov ON ov.option_group_id = 606 AND ov.value = m.dropdown_circle_1708
 		           WHERE u.uniq_phone IS NOT NULL AND u.uniq_phone != ''
-		             AND (REGEXP_REPLACE(cp.phone, '[^0-9]', '') = u.uniq_phone
-		                  OR REGEXP_REPLACE(cp.phone, '[^0-9]', '') = CONCAT('0', SUBSTR(u.uniq_phone, 4)))
+		             AND (REGEXP_REPLACE(cp.phone, '[^0-9]', '') = u.uniq_phone COLLATE utf8mb3_unicode_ci
+		                  OR REGEXP_REPLACE(cp.phone, '[^0-9]', '') = CONCAT('0', SUBSTR(u.uniq_phone, 4)) COLLATE utf8mb3_unicode_ci)
 		           LIMIT 1
 		       ), (
 		           SELECT ov.label_en_US
 		           FROM civicrm_email ce
 		           JOIN civicrm_value_member_data_223 m ON m.entity_id = ce.contact_id
 		           JOIN civicrm_option_value ov ON ov.option_group_id = 606 AND ov.value = m.dropdown_circle_1708
-		           WHERE ce.email = u.email
+		           WHERE ce.email = u.email COLLATE utf8mb3_unicode_ci
 		           LIMIT 1
 		       ), '') AS circle
 		FROM hmarket_users u
