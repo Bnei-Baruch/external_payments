@@ -103,7 +103,7 @@ func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bo
 	return
 }
 
-func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[string]interface{}) {
+func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[string]any) {
 
 	p.TransactionId = transactionId
 	err, msg = p.connect("/GetTransaction")
@@ -111,7 +111,7 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 	return
 }
 
-func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err error, msg map[string]interface{}) {
+func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err error, msg map[string]any) {
 	log.Printf("===> GetTransactionData around %s with approval %s\n", createDate, approvalNo)
 	layoutIn := "2006-01-02 15:04:05"
 	layoutOut := "02/01/2006 15:04"
@@ -128,13 +128,13 @@ func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err
 	s.StartDate = date.Add(-time.Minute * 5).Format(layoutOut)
 	s.EndDate = date.Add(time.Minute * 5).Format(layoutOut)
 	log.Printf("===> GetTransactionData between %s and %s\n", s.StartDate, s.EndDate)
-	var data []interface{}
+	var data []any
 	if err, data = p.servicesArr("/GetTransData", s); err != nil {
 		return err, nil
 	}
 	log.Printf("===> GetTransactionData found %d transactions\n", len(data))
 	for _, d := range data {
-		msg = d.(map[string]interface{})
+		msg = d.(map[string]any)
 		log.Printf("===> GetTransactionData transaction with approval %s\n", msg["DebitApproveNumber"])
 		if msg["DebitApproveNumber"] == approvalNo {
 			log.Printf("===> GetTransactionData FOUND!!!")
@@ -165,7 +165,7 @@ func (p *PeleCard) GetRedirectUrl(actionType types.ActionType, requireCVV bool) 
 	p.HiddenPelecardLogo = true
 	p.SupportedCards = map[string]bool{"Amex": true, "Diners": false, "Isra": true, "Master": true, "Visa": true}
 
-	var result map[string]interface{}
+	var result map[string]any
 	if err, result = p.connect("/init"); err != nil {
 		return
 	}
@@ -173,7 +173,7 @@ func (p *PeleCard) GetRedirectUrl(actionType types.ActionType, requireCVV bool) 
 	return
 }
 
-func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, result map[string]interface{}) {
+func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, result map[string]any) {
 	s := &service{
 		TerminalNumber: p.Terminal,
 		User:           p.User,
@@ -191,7 +191,7 @@ func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, resul
 	return
 }
 
-func (p *PeleCard) AuthorizeCreditCard() (err error, result map[string]interface{}) {
+func (p *PeleCard) AuthorizeCreditCard() (err error, result map[string]any) {
 	s := &service{
 		TerminalNumber: os.Getenv("PELECARD_RECURR_TERMINAL"),
 		User:           p.User,
@@ -246,7 +246,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 	return
 }
 
-func (p *PeleCard) services(action string, data *service) (err error, result map[string]interface{}) {
+func (p *PeleCard) services(action string, data *service) (err error, result map[string]any) {
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
@@ -260,12 +260,12 @@ func (p *PeleCard) services(action string, data *service) (err error, result map
 		return
 	}
 	defer resp.Body.Close()
-	var body map[string]interface{}
+	var body map[string]any
 	json.NewDecoder(resp.Body).Decode(&body)
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
-			result = body["ResultData"].(map[string]interface{})
+			result = body["ResultData"].(map[string]any)
 		} else {
 			if msg, ok := body["ErrorMessage"]; ok {
 				err = fmt.Errorf("%s: %s", status, msg)
@@ -278,7 +278,7 @@ func (p *PeleCard) services(action string, data *service) (err error, result map
 	return
 }
 
-func (p *PeleCard) servicesArr(action string, data *service) (err error, result []interface{}) {
+func (p *PeleCard) servicesArr(action string, data *service) (err error, result []any) {
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
@@ -292,12 +292,12 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 		return
 	}
 	defer resp.Body.Close()
-	var body map[string]interface{}
+	var body map[string]any
 	json.NewDecoder(resp.Body).Decode(&body)
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
-			result = body["ResultData"].([]interface{})
+			result = body["ResultData"].([]any)
 		} else {
 			if msg, ok := body["ErrorMessage"]; ok {
 				err = fmt.Errorf("%s: %s", status, msg)
@@ -310,7 +310,7 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	return
 }
 
-func (p *PeleCard) connect(action string) (err error, result map[string]interface{}) {
+func (p *PeleCard) connect(action string) (err error, result map[string]any) {
 	params, _ := json.Marshal(*p)
 	url := p.Url + action
 	errLogger := gin.DefaultErrorWriter
@@ -321,17 +321,17 @@ func (p *PeleCard) connect(action string) (err error, result map[string]interfac
 		return
 	}
 	defer resp.Body.Close()
-	var body map[string]interface{}
+	var body map[string]any
 	json.NewDecoder(resp.Body).Decode(&body)
 	if urlOk, ok := body["URL"]; ok {
 		if urlOk.(string) != "" {
-			result = make(map[string]interface{})
+			result = make(map[string]any)
 			result["URL"] = urlOk.(string)
 			return
 		}
 	}
 	if msg, ok := body["Error"]; ok {
-		msg := msg.(map[string]interface{})
+		msg := msg.(map[string]any)
 		if errCode, ok := msg["ErrCode"]; ok {
 			if errCode.(float64) > 0 {
 				err = fmt.Errorf("%d: %s", int(errCode.(float64)), msg["ErrMsg"])
@@ -343,7 +343,7 @@ func (p *PeleCard) connect(action string) (err error, result map[string]interfac
 		if status, ok := body["StatusCode"]; ok {
 			if status == "000" {
 				err = nil
-				result = body["ResultData"].(map[string]interface{})
+				result = body["ResultData"].(map[string]any)
 			} else {
 				err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 			}
@@ -353,7 +353,7 @@ func (p *PeleCard) connect(action string) (err error, result map[string]interfac
 	return
 }
 
-func (p *PeleCard) connectArr(action string) (err error, result []map[string]interface{}) {
+func (p *PeleCard) connectArr(action string) (err error, result []map[string]any) {
 	params, _ := json.Marshal(*p)
 	url := p.Url + action
 	errLogger := gin.DefaultErrorWriter
@@ -364,10 +364,10 @@ func (p *PeleCard) connectArr(action string) (err error, result []map[string]int
 		return
 	}
 	defer resp.Body.Close()
-	var body map[string]interface{}
+	var body map[string]any
 	json.NewDecoder(resp.Body).Decode(&body)
 	if msg, ok := body["Error"]; ok {
-		msg := msg.(map[string]interface{})
+		msg := msg.(map[string]any)
 		if errCode, ok := msg["ErrCode"]; ok {
 			if errCode.(float64) > 0 {
 				err = fmt.Errorf("%d: %s", int(errCode.(float64)), msg["ErrMsg"])
@@ -380,7 +380,7 @@ func (p *PeleCard) connectArr(action string) (err error, result []map[string]int
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
-			result = body["ResultData"].([]map[string]interface{})
+			result = body["ResultData"].([]map[string]any)
 		} else {
 			err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 		}

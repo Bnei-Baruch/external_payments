@@ -337,7 +337,7 @@ func UpdateRequest(p types.PaymentResponse) (err error) {
 	return
 }
 
-func execInTx(query string, args ...interface{}) (err error) {
+func execInTx(query string, args ...any) (err error) {
 	var er error
 	tx := db.MustBegin()
 	_, err = tx.Exec(query, args...)

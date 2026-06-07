@@ -51,7 +51,7 @@ func GetTransaction(c *gin.Context) {
 		OnError("Init"+err.Error(), c)
 		return
 	}
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransactionData(request.CreatedAt, request.ApprovalNo); err != nil {
 		OnError("GetTransactionData "+err.Error(), c)
 		return
@@ -219,7 +219,7 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		OnError("GetTransaction "+err.Error(), c)
 		return

@@ -223,7 +223,7 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
 		logMessage(m)
@@ -362,7 +362,7 @@ func authorize(c *gin.Context, terminalType types.PelecardType) {
 		ErrorJson("AuthorizeCC PeleCard Init: "+err.Error(), c)
 		return
 	}
-	var msg map[string]interface{}
+	var msg map[string]any
 	result := map[string]string{}
 
 	if err, msg = card.AuthorizeCreditCard(); err != nil {
@@ -411,7 +411,7 @@ func AuthorizeCCX(c *gin.Context) {
 			logMessage(m)
 			continue
 		}
-		var msg map[string]interface{}
+		var msg map[string]any
 		result := map[string]string{}
 
 		if err, msg = card.AuthorizeCreditCard(); err != nil {
@@ -478,7 +478,7 @@ func Charge(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	var response = types.PaymentResponse{}
 
 	if err, msg = card.ChargeByToken(false); err != nil {
@@ -559,7 +559,7 @@ func ChargeX(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	var response = types.PaymentResponse{}
 
 	if err, msg = card.ChargeByToken(false); err != nil {

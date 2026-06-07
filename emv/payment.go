@@ -204,7 +204,7 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)
@@ -320,7 +320,7 @@ func Charge(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	var response = types.PaymentResponse{}
 
 	if err, msg = card.ChargeByToken(true); err != nil {

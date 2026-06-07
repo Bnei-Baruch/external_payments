@@ -178,7 +178,7 @@ func GoodJ2(c *gin.Context) {
 		return
 	}
 
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		m := fmt.Sprintf("Good J2: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)

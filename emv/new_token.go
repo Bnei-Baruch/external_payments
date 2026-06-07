@@ -169,7 +169,7 @@ func GoodToken(c *gin.Context) {
 		utils.ErrorJson("Approve Init: "+err.Error(), c)
 		return
 	}
-	var msg map[string]interface{}
+	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)

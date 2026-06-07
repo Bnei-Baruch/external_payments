@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -14,14 +15,14 @@ var valuesRegex = regexp.MustCompile("^values=([a-zA-Z0-9|]+)$")
 // Generic data validator
 type Validator interface {
 	// Validate method performs validation and returns result and optional error
-	Validate(interface{}) (bool, error)
+	Validate(any) (bool, error)
 }
 
 // DefaultValidator does not perform any validation
 type DefaultValidator struct {
 }
 
-func (v DefaultValidator) Validate(val interface{}) (bool, error) {
+func (v DefaultValidator) Validate(val any) (bool, error) {
 	return true, nil
 }
 
@@ -31,7 +32,7 @@ type BoolValidator struct {
 	Values   string
 }
 
-func (v BoolValidator) Validate(val interface{}) (bool, error) {
+func (v BoolValidator) Validate(val any) (bool, error) {
 	value := val.(string)
 	l := len(value)
 
@@ -41,7 +42,7 @@ func (v BoolValidator) Validate(val interface{}) (bool, error) {
 
 	if v.Values != "" {
 		values := strings.Split(v.Values, "|")
-		if !contains(values, value) {
+		if !slices.Contains(values, value) {
 			return false, fmt.Errorf("has illegal value")
 		}
 	}
@@ -55,7 +56,7 @@ type StringValidator struct {
 	Values   string
 }
 
-func (v StringValidator) Validate(val interface{}) (bool, error) {
+func (v StringValidator) Validate(val any) (bool, error) {
 	value := val.(string)
 	l := len(value)
 
@@ -65,7 +66,7 @@ func (v StringValidator) Validate(val interface{}) (bool, error) {
 
 	if v.Values != "" {
 		values := strings.Split(v.Values, "|")
-		if !contains(values, value) {
+		if !slices.Contains(values, value) {
 			return false, fmt.Errorf("has illegal value")
 		}
 	}
@@ -79,7 +80,7 @@ type NumberValidator struct {
 	Max int
 }
 
-func (v NumberValidator) Validate(val interface{}) (bool, error) {
+func (v NumberValidator) Validate(val any) (bool, error) {
 	num := val.(int)
 
 	if num < v.Min {
@@ -98,7 +99,7 @@ type EmailValidator struct {
 	Required bool
 }
 
-func (v EmailValidator) Validate(val interface{}) (bool, error) {
+func (v EmailValidator) Validate(val any) (bool, error) {
 	value := val.(string)
 	l := len(value)
 
@@ -153,7 +154,7 @@ func getValidatorFromTag(tag string) Validator {
 		return validator
 	case "email":
 		validator := EmailValidator{}
-		if contains(args[1:], "required") {
+		if slices.Contains(args[1:], "required") {
 			validator.Required = true
 		}
 		return validator
@@ -165,7 +166,7 @@ func getValidatorFromTag(tag string) Validator {
 //================================================
 
 // Performs actual data validation using validator definitions on the struct
-func ValidateStruct(s interface{}) (found bool, errs []string) {
+func ValidateStruct(s any) (found bool, errs []string) {
 
 	found = false
 
@@ -197,14 +198,3 @@ func ValidateStruct(s interface{}) (found bool, errs []string) {
 	return
 }
 
-// Helpers
-
-// Does array s includes value e?
-func contains(s []string, e string) bool {
-	for _, a := range s {
-		if a == e {
-			return true
-		}
-	}
-	return false
-}
