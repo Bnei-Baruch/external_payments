@@ -12,9 +12,19 @@ import (
 	"external_payments/types"
 )
 
+// hebrewAliases maps Hebrew label keys to English field IDs.
+// Elementor sends the field label as webhook key when a label is set.
+var hebrewAliases = map[string]string{
+	"שם":    "name",
+	"אימייל": "email",
+	"מייל":   "email",
+	"טלפון":  "phone",
+}
+
 // parseElementorFields parses Elementor URL-encoded payload.
-// Keys arrive as "אין תווית {id}" (Hebrew "no label" prefix).
-// url.ParseQuery converts spaces→underscores in keys, so decode manually.
+// Keys arrive as "אין תווית {id}" (Hebrew prefix + ASCII id) or as plain Hebrew labels.
+// If the last space-separated token starts with a letter (a-z/A-Z), use it as field ID.
+// Otherwise apply hebrewAliases on the full key.
 func parseElementorFields(body string) map[string]string {
 	fields := make(map[string]string)
 	for _, pair := range strings.Split(body, "&") {
@@ -25,8 +35,16 @@ func parseElementorFields(body string) map[string]string {
 		rawKey, rawVal := pair[:idx], pair[idx+1:]
 		key, _ := url.QueryUnescape(strings.ReplaceAll(rawKey, "+", " "))
 		value, _ := url.QueryUnescape(strings.ReplaceAll(rawVal, "+", " "))
-		parts := strings.Split(key, " ")
-		id := parts[len(parts)-1]
+		parts := strings.Fields(key)
+		last := parts[len(parts)-1]
+		var id string
+		if len(last) > 0 && ((last[0] >= 'a' && last[0] <= 'z') || (last[0] >= 'A' && last[0] <= 'Z')) {
+			id = last
+		} else if alias, ok := hebrewAliases[key]; ok {
+			id = alias
+		} else {
+			id = key
+		}
 		fields[id] = value
 	}
 	return fields
@@ -52,6 +70,8 @@ func Form(c *gin.Context) {
 	}
 
 	fields := parseElementorFields(string(body))
+	log.Printf("[hmarket/form] raw body: %s", string(body))
+	log.Printf("[hmarket/form] parsed fields: %v", fields)
 
 	rawPhone := fields["phone"]
 	uniqPhone := normalizePhone(rawPhone)
