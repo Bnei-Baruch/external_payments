@@ -7,24 +7,31 @@ import (
 )
 
 func UpsertHMarketUser(u types.HMarketUser) (userID int64, isNew bool, subChanged bool, newSubStatus bool, err error) {
+	var existing types.HMarketUser
+	var e error
+
 	if u.UniqPhone != nil {
-		var existing types.HMarketUser
-		e := db.Get(&existing, "SELECT * FROM hmarket_users WHERE uniq_phone = ? LIMIT 1", *u.UniqPhone)
-		if e == nil {
-			u.Blacklisted = existing.Blacklisted
-			subChanged = existing.Subscribed != u.Subscribed
-			newSubStatus = u.Subscribed
-			_, err = db.Exec(
-				`UPDATE hmarket_users SET first_name=?, last_name=?, company=?, address_1=?, address_2=?, city=?, country=?, email=?, subscribed=?, blacklisted=? WHERE id=?`,
-				u.FirstName, u.LastName, u.Company, u.Address1, u.Address2, u.City, u.Country, u.Email, u.Subscribed, u.Blacklisted, existing.ID,
-			)
-			userID = existing.ID
-			return
-		}
-		if e != sql.ErrNoRows {
-			err = e
-			return
-		}
+		e = db.Get(&existing, "SELECT * FROM hmarket_users WHERE uniq_phone = ? LIMIT 1", *u.UniqPhone)
+	} else if u.Email != "" {
+		e = db.Get(&existing, "SELECT * FROM hmarket_users WHERE email = ? LIMIT 1", u.Email)
+	} else {
+		e = sql.ErrNoRows
+	}
+
+	if e == nil {
+		u.Blacklisted = existing.Blacklisted
+		subChanged = existing.Subscribed != u.Subscribed
+		newSubStatus = u.Subscribed
+		_, err = db.Exec(
+			`UPDATE hmarket_users SET first_name=?, last_name=?, company=?, address_1=?, address_2=?, city=?, country=?, email=?, subscribed=?, blacklisted=? WHERE id=?`,
+			u.FirstName, u.LastName, u.Company, u.Address1, u.Address2, u.City, u.Country, u.Email, u.Subscribed, u.Blacklisted, existing.ID,
+		)
+		userID = existing.ID
+		return
+	}
+	if e != sql.ErrNoRows {
+		err = e
+		return
 	}
 
 	res, e := db.Exec(

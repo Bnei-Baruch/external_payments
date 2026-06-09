@@ -60,9 +60,9 @@ func Form(c *gin.Context) {
 	eventName := fields["event"]
 	source := fields["source"]
 
-	if rawPhone == "" {
-		log.Printf("[hmarket/form] missing phone")
-		c.JSON(400, gin.H{"error": "phone is required"})
+	if rawPhone == "" && email == "" {
+		log.Printf("[hmarket/form] missing phone and email")
+		c.JSON(400, gin.H{"error": "phone or email is required"})
 		return
 	}
 
