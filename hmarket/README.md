@@ -12,9 +12,27 @@ Authorization: Bearer <HMARKET_API_TOKEN>
 
 `HMARKET_API_TOKEN` is set in the server `.env`. Requests without a valid token receive `401 Unauthorized`.
 
-`/hmarket/webhook` and `/hmarket/hw1` do not require this token. `/hmarket/hw1` verifies the WooCommerce webhook signature via `X-Wc-Webhook-Signature` and `HMARKET_SECRET`.
+`/hmarket/webhook`, `/hmarket/hw1`, and `/hmarket/form` do not require this token. `/hmarket/hw1` verifies the WooCommerce webhook signature via `X-Wc-Webhook-Signature` and `HMARKET_SECRET`.
 
 ## Endpoints
+
+### `POST /hmarket/form`
+Accepts Elementor Pro webhook submissions from landing page forms. No authentication required.
+
+**Fields** (URL-encoded body, Hebrew labels auto-mapped to English IDs):
+
+| Form field | Elementor Field ID | Destination |
+|------------|--------------------|-------------|
+| Name | `name` | `hmarket_users.first_name` + `last_name` (split by first space) |
+| Email | `email` | `hmarket_users.email` |
+| Phone | `phone` | `hmarket_users.phone` / `uniq_phone` |
+| Event | `event` | `hmarket_activities.name` |
+| Source | `source` | `hmarket_activities.source` |
+
+- Requires at least **phone or email**. Returns `400` if both absent.
+- User deduped by `uniq_phone` if phone present, otherwise by `email`.
+- Always creates one activity row.
+- Hebrew field labels (`שם`, `אימייל`, `טלפון`) are auto-mapped via `hebrewAliases`. Elementor uses the label as webhook key when a label is set; use placeholder (not label) for display text to avoid this, or keep labels in the alias map.
 
 ### `POST /hmarket/webhook`
 Logs all incoming headers and raw body to `/tmp/hmarket.log`. Used for inspection/debugging of WooCommerce webhook payloads.
@@ -81,6 +99,6 @@ Returns `404` if user not found.
 
 ## Database Tables
 
-- `hmarket_users` — one row per customer, deduped by `uniq_phone`
+- `hmarket_users` — one row per customer, deduped by `uniq_phone` (or `email` when phone absent)
 - `hmarket_activities` — one row per line item per order
 - `hmarket_subscription_history` — audit log of subscription and blacklist changes; `change_type` is `subscription` or `blacklist`
