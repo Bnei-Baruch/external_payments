@@ -70,8 +70,6 @@ func Form(c *gin.Context) {
 	}
 
 	fields := parseElementorFields(string(body))
-	log.Printf("[hmarket/form] raw body: %s", string(body))
-	log.Printf("[hmarket/form] parsed fields: %v", fields)
 
 	rawPhone := fields["phone"]
 	uniqPhone := normalizePhone(rawPhone)
