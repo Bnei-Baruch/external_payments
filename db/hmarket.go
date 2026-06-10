@@ -48,9 +48,11 @@ func UpsertHMarketUser(u types.HMarketUser) (userID int64, isNew bool, subChange
 }
 
 func CreateHMarketActivity(a types.HMarketActivity) error {
+	// INSERT IGNORE: silently skips duplicate (cart_token, product_id) for Shopify dedup.
+	// NULL cart_token (hw1 activities) is unaffected — NULLs are distinct in unique indexes.
 	_, err := db.Exec(
-		`INSERT INTO hmarket_activities (user_id, source, name, product_id, sku, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		a.UserID, a.Source, a.Name, a.ProductID, a.SKU, a.CreatedAt,
+		`INSERT IGNORE INTO hmarket_activities (user_id, source, name, product_id, sku, created_at, cart_token) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		a.UserID, a.Source, a.Name, a.ProductID, a.SKU, a.CreatedAt, a.CartToken,
 	)
 	return err
 }

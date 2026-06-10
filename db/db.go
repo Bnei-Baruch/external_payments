@@ -126,6 +126,10 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE hmarket_subscription_history ADD COLUMN IF NOT EXISTS change_type VARCHAR(20) NOT NULL DEFAULT '';`),
 		heredoc.Doc(`
+	ALTER TABLE hmarket_activities ADD COLUMN IF NOT EXISTS cart_token VARCHAR(64);`),
+		heredoc.Doc(`
+	CREATE UNIQUE INDEX IF NOT EXISTS ux_cart_product ON hmarket_activities(cart_token, product_id);`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),

@@ -17,12 +17,13 @@ type HMarketUser struct {
 }
 
 type HMarketActivity struct {
-	UserID    int64  `db:"user_id"`
-	Source    string `db:"source"`
-	Name      string `db:"name"`
-	ProductID int64  `db:"product_id"`
-	SKU       string `db:"sku"`
-	CreatedAt string `db:"created_at"`
+	UserID    int64   `db:"user_id"`
+	Source    string  `db:"source"`
+	Name      string  `db:"name"`
+	ProductID int64   `db:"product_id"`
+	SKU       string  `db:"sku"`
+	CreatedAt string  `db:"created_at"`
+	CartToken *string `db:"cart_token"`
 }
 
 type HMarketSubscriptionHistory struct {
