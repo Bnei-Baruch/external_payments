@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -76,9 +77,13 @@ func NewPayment(c *gin.Context) {
 		currency = 978
 	}
 
-	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/token/good")
-	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/token/error")
-	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/token/cancel")
+	baseUrl := os.Getenv("EXT_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://checkout.kbb1.com"
+	}
+	goodUrl := baseUrl + "/token/good"
+	errorUrl := baseUrl + "/token/error"
+	cancelUrl := baseUrl + "/token/cancel"
 
 	total := int(float32(request.Price) * 100.00)
 
@@ -195,6 +200,14 @@ func GoodPayment(c *gin.Context) {
 	form := loadPeleCardForm(c)
 	m := fmt.Sprintf("Good Payment: %+v", form)
 	logMessage(m)
+
+	if form.PelecardStatusCode != "000" {
+		m := fmt.Sprintf("Good Payment: Pelecard error %s", form.PelecardStatusCode)
+		logMessage(m)
+		db.SetStatus(form.UserKey, "invalid")
+		ErrorJson("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		return
+	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good Payment: %s", err.Error())
@@ -313,6 +326,22 @@ func GoodPayment(c *gin.Context) {
 
 		db.SetStatus(form.UserKey, "invalid")
 		ErrorJson("First Charge error ", c)
+		return
+	}
+
+	// Re-verify server-to-server before treating as paid.
+	txId, _ := msg["PelecardTransactionId"].(string)
+	if txId == "" {
+		db.SetStatus(form.UserKey, "invalid")
+		logMessage("Good Payment: no PelecardTransactionId in ChargeByToken response")
+		ErrorJson("First Charge: no transaction ID returned", c)
+		return
+	}
+	if err, msg = card.GetTransaction(txId); err != nil {
+		m := fmt.Sprintf("Good Payment: GetTransaction verify failed %s", err.Error())
+		logMessage(m)
+		db.SetStatus(form.UserKey, "invalid")
+		ErrorJson("First Charge verify failed: "+err.Error(), c)
 		return
 	}
 
