@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -13,6 +14,15 @@ import (
 	"external_payments/pelecard"
 	"external_payments/types"
 )
+
+// BaseUrl returns the external_payments base URL from EXT_BASE_URL env var,
+// defaulting to https://checkout.kbb1.com.
+func BaseUrl() string {
+	if u := os.Getenv("EXT_BASE_URL"); u != "" {
+		return u
+	}
+	return "https://checkout.kbb1.com"
+}
 
 func LogMessage(message string) {
 	currentTime := time.Now()

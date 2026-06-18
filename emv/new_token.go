@@ -3,8 +3,7 @@ package emv
 import (
 	"encoding/json/v2"
 	"fmt"
-	"os"
-	"strings"
+		"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -48,11 +47,7 @@ func NewToken(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-
-	baseUrl := os.Getenv("EXT_BASE_URL")
-	if baseUrl == "" {
-		baseUrl = "https://checkout.kbb1.com"
-	}
+	baseUrl := utils.BaseUrl()
 
 	// Request Pelecard
 	card := &pelecard.PeleCard{

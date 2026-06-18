@@ -4,8 +4,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"net/http"
-	"os"
-	"strings"
+		"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-querystring/query"
@@ -13,6 +12,7 @@ import (
 	"external_payments/db"
 	"external_payments/pelecard"
 	"external_payments/types"
+	"external_payments/utils"
 	"external_payments/validation"
 )
 
@@ -76,11 +76,7 @@ func NewPayment(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-
-	baseUrl := os.Getenv("EXT_BASE_URL")
-	if baseUrl == "" {
-		baseUrl = "https://checkout.kbb1.com"
-	}
+	baseUrl := utils.BaseUrl()
 	goodUrl := baseUrl + "/token/good"
 	errorUrl := baseUrl + "/token/error"
 	cancelUrl := baseUrl + "/token/cancel"

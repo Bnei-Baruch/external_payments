@@ -3,8 +3,7 @@ package renew_card
 import (
 	"encoding/json/v2"
 	"fmt"
-	"os"
-	"strings"
+		"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -52,10 +51,7 @@ func RenewCard(c *gin.Context) {
 	total := int(float32(request.Price) * 100.00)
 
 	// Request Pelecard
-	baseUrl := os.Getenv("EXT_BASE_URL")
-	if baseUrl == "" {
-		baseUrl = "https://checkout.kbb1.com"
-	}
+	baseUrl := utils.BaseUrl()
 
 	card := &pelecard.PeleCard{
 		Language:    request.Language,
