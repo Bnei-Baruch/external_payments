@@ -92,8 +92,8 @@ func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bo
 	} else {
 		p.Terminal = os.Getenv("PELECARD_RECURR_TERMINAL")
 	}
-	p.Service = os.Getenv("PELECARD_SERVICE_URL")
-	p.Url = os.Getenv("PELECARD_URL")
+	p.Service = os.Getenv("PELECARD_SERVICES_URL")
+	p.Url = os.Getenv("PELECARD_GW_URL")
 	if p.User == "" || p.Password == "" || p.Terminal == "" ||
 		(p.Url == "" && p.Service == "") {
 		err = fmt.Errorf("PELECARD parameters are missing for terminal %s", p.Terminal)
