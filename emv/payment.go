@@ -343,14 +343,14 @@ func Charge(c *gin.Context) {
 	// Re-verify server-to-server before treating as paid.
 	txId, _ := msg["PelecardTransactionId"].(string)
 	if txId == "" {
-		db.SetStatus(request.UserKey, "invalid")
+		// Leave in-process — ext2fix will reconcile via CheckGoodParamX.
 		utils.LogMessage("Charge: no PelecardTransactionId in ChargeByToken response")
 		utils.ErrorJson("Charge: no transaction ID returned", c)
 		return
 	}
 	var txMsg map[string]any
 	if err, txMsg = card.GetTransaction(txId); err != nil {
-		db.SetStatus(request.UserKey, "invalid")
+		// Transient verify failure — leave in-process for ext2fix reconciliation.
 		m := fmt.Sprintf("Charge: GetTransaction verify failed %s", err.Error())
 		utils.LogMessage(m)
 		utils.ErrorJson("Charge verify failed: "+err.Error(), c)

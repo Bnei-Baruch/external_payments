@@ -328,15 +328,15 @@ func GoodPayment(c *gin.Context) {
 	// Re-verify server-to-server before treating as paid.
 	txId, _ := msg["PelecardTransactionId"].(string)
 	if txId == "" {
-		db.SetStatus(form.UserKey, "invalid")
+		// Leave in-process — ext2fix will reconcile via CheckGoodParamX.
 		logMessage("Good Payment: no PelecardTransactionId in ChargeByToken response")
 		ErrorJson("First Charge: no transaction ID returned", c)
 		return
 	}
 	if err, msg = card.GetTransaction(txId); err != nil {
+		// Transient verify failure — leave in-process for ext2fix reconciliation.
 		m := fmt.Sprintf("Good Payment: GetTransaction verify failed %s", err.Error())
 		logMessage(m)
-		db.SetStatus(form.UserKey, "invalid")
 		ErrorJson("First Charge verify failed: "+err.Error(), c)
 		return
 	}
