@@ -104,10 +104,43 @@ func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bo
 }
 
 func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[string]any) {
-
-	p.TransactionId = transactionId
-	err, msg = p.connect("/GetTransaction")
-
+	// Send only the 4 fields GetTransaction requires — sending the full PeleCard
+	// struct causes 598 ("Necessary values missing/wrong") on gateway21.
+	type getTransactionRequest struct {
+		User          string `json:"user"`
+		Password      string `json:"password"`
+		Terminal      string `json:"terminal"`
+		TransactionId string `json:"TransactionId"`
+	}
+	req := getTransactionRequest{
+		User:          p.User,
+		Password:      p.Password,
+		Terminal:      p.Terminal,
+		TransactionId: transactionId,
+	}
+	params, _ := json.Marshal(req)
+	url := p.Url + "/GetTransaction"
+	errLogger := gin.DefaultErrorWriter
+	_, _ = errLogger.Write([]byte(fmt.Sprintf("----------> CONNECT: %s\n", url)))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var body map[string]any
+	json.UnmarshalRead(resp.Body, &body)
+	if errField, ok := body["Error"]; ok {
+		e := errField.(map[string]any)
+		if errCode, ok := e["ErrCode"]; ok && errCode.(float64) > 0 {
+			err = fmt.Errorf("%d: %s", int(errCode.(float64)), e["ErrMsg"])
+		}
+	} else if status, ok := body["StatusCode"]; ok {
+		if status == "000" {
+			msg = body["ResultData"].(map[string]any)
+		} else {
+			err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
+		}
+	}
 	return
 }
 
