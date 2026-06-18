@@ -3,6 +3,7 @@ package renew_card
 import (
 	"encoding/json/v2"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -51,13 +52,18 @@ func RenewCard(c *gin.Context) {
 	total := int(float32(request.Price) * 100.00)
 
 	// Request Pelecard
+	baseUrl := os.Getenv("EXT_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://checkout.kbb1.com"
+	}
+
 	card := &pelecard.PeleCard{
 		Language:    request.Language,
 		UserKey:     request.UserKey,
 		ParamX:      request.Reference,
-		GoodUrl:     "https://checkout.kbb1.com/renew/good",
-		ErrorUrl:    "https://checkout.kbb1.com/renew/error",
-		CancelUrl:   "https://checkout.kbb1.com/renew/cancel",
+		GoodUrl:     baseUrl + "/renew/good",
+		ErrorUrl:    baseUrl + "/renew/error",
+		CancelUrl:   baseUrl + "/renew/cancel",
 		Total:       total,
 		Currency:    currency,
 		MaxPayments: request.Installments,
@@ -151,6 +157,14 @@ func GoodJ2(c *gin.Context) {
 	form := utils.LoadPeleCardForm(c)
 	m := fmt.Sprintf("Good J2: %+v", form)
 	utils.LogMessage(m)
+
+	if form.PelecardStatusCode != "000" {
+		m := fmt.Sprintf("Good J2: Pelecard error %s", form.PelecardStatusCode)
+		utils.LogMessage(m)
+		db.SetStatus(form.UserKey, "invalid")
+		utils.ErrorJson("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		return
+	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good J2: %s", err.Error())

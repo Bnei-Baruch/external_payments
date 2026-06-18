@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"net/http"
+	"os"
 	"runtime/debug"
 	"strings"
 
@@ -91,9 +92,13 @@ func NewPayment(c *gin.Context) {
 		currency = 978
 	}
 
-	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/good")
-	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/error")
-	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/payments/cancel")
+	baseUrl := os.Getenv("EXT_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://checkout.kbb1.com"
+	}
+	goodUrl := baseUrl + "/payments/good"
+	errorUrl := baseUrl + "/payments/error"
+	cancelUrl := baseUrl + "/payments/cancel"
 
 	total := int(float32(request.Price) * 100.00)
 
@@ -198,6 +203,12 @@ func GoodPayment(c *gin.Context) {
 	var err error
 
 	form := loadPeleCardForm(c)
+
+	if form.PelecardStatusCode != "000" {
+		OnError("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		db.SetStatus(form.UserKey, "invalid")
+		return
+	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		OnError("UpdateRequestTemp: "+err.Error(), c)
