@@ -4,6 +4,7 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -71,9 +72,13 @@ func NewPayment(c *gin.Context) {
 		currency = 978
 	}
 
-	goodUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/good")
-	errorUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/error")
-	cancelUrl := fmt.Sprintf("https://checkout.kbb1.com/emv/cancel")
+	baseUrl := os.Getenv("EXT_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://checkout.kbb1.com"
+	}
+	goodUrl := baseUrl + "/emv/good"
+	errorUrl := baseUrl + "/emv/error"
+	cancelUrl := baseUrl + "/emv/cancel"
 
 	total := int(float32(request.Price) * 100.00)
 
@@ -176,6 +181,14 @@ func GoodPayment(c *gin.Context) {
 	form := utils.LoadPeleCardForm(c)
 	m := fmt.Sprintf("Good Payment: %+v", form)
 	utils.LogMessage(m)
+
+	if form.PelecardStatusCode != "000" {
+		m := fmt.Sprintf("Good Payment: Pelecard error %s", form.PelecardStatusCode)
+		utils.LogMessage(m)
+		db.SetStatus(form.UserKey, "invalid")
+		utils.ErrorJson("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		return
+	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good Payment: %s", err.Error())
@@ -331,6 +344,25 @@ func Charge(c *gin.Context) {
 		utils.ErrorJson("Charge error "+err.Error(), c)
 		return
 	}
+
+	// Re-verify server-to-server before treating as paid.
+	txId, _ := msg["PelecardTransactionId"].(string)
+	if txId == "" {
+		db.SetStatus(request.UserKey, "invalid")
+		utils.LogMessage("Charge: no PelecardTransactionId in ChargeByToken response")
+		utils.ErrorJson("Charge: no transaction ID returned", c)
+		return
+	}
+	var txMsg map[string]any
+	if err, txMsg = card.GetTransaction(txId); err != nil {
+		db.SetStatus(request.UserKey, "invalid")
+		m := fmt.Sprintf("Charge: GetTransaction verify failed %s", err.Error())
+		utils.LogMessage(m)
+		utils.ErrorJson("Charge verify failed: "+err.Error(), c)
+		return
+	}
+	msg = txMsg
+
 	body, _ := json.Marshal(msg)
 	_ = json.Unmarshal(body, &response)
 	response.UserKey = request.UserKey

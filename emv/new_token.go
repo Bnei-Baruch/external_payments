@@ -3,6 +3,7 @@ package emv
 import (
 	"encoding/json/v2"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -48,14 +49,19 @@ func NewToken(c *gin.Context) {
 		currency = 978
 	}
 
+	baseUrl := os.Getenv("EXT_BASE_URL")
+	if baseUrl == "" {
+		baseUrl = "https://checkout.kbb1.com"
+	}
+
 	// Request Pelecard
 	card := &pelecard.PeleCard{
 		Language:    request.Language,
 		UserKey:     request.UserKey,
 		ParamX:      request.Reference,
-		GoodUrl:     "https://checkout.kbb1.com/emv/good_token",
-		ErrorUrl:    "https://checkout.kbb1.com/emv/error",
-		CancelUrl:   "https://checkout.kbb1.com/emv/cancel",
+		GoodUrl:     baseUrl + "/emv/good_token",
+		ErrorUrl:    baseUrl + "/emv/error",
+		CancelUrl:   baseUrl + "/emv/cancel",
 		Total:       0,
 		Currency:    currency,
 		MaxPayments: 1,
@@ -169,11 +175,36 @@ func GoodToken(c *gin.Context) {
 		utils.ErrorJson("Approve Init: "+err.Error(), c)
 		return
 	}
+	var request types.PaymentRequest
+	if err = db.LoadRequest(form.UserKey, &request); err != nil {
+		m := fmt.Sprintf("Good Token: Load Request Error %s", err.Error())
+		utils.LogMessage(m)
+		utils.ErrorJson("LoadRequest "+err.Error(), c)
+		return
+	}
+
+	card.ConfirmationKey = form.ConfirmationKey
+	card.UserKey = request.UserKey
+	card.TotalX100 = fmt.Sprintf("%d", int(request.Price*100.00))
+	var valid bool
+	if valid, err = card.ValidateByUniqueKey(); err != nil {
+		m := fmt.Sprintf("Good Token: ValidateByUniqueKey error %s", err.Error())
+		utils.LogMessage(m)
+		db.SetStatus(form.UserKey, "invalid")
+		utils.ErrorJson("ValidateByUniqueKey "+err.Error(), c)
+		return
+	}
+	if !valid {
+		db.SetStatus(form.UserKey, "invalid")
+		utils.LogMessage("Good Token: Confirmation error")
+		utils.ErrorJson("Confirmation error", c)
+		return
+	}
+
 	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
-		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
+		m := fmt.Sprintf("Good Token: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)
-
 		utils.ErrorJson("GetTransaction: "+err.Error(), c)
 		return
 	}
@@ -181,13 +212,6 @@ func GoodToken(c *gin.Context) {
 	body, _ := json.Marshal(msg)
 	_ = json.Unmarshal(body, &response)
 
-	var request types.PaymentRequest
-	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		m := fmt.Sprintf("Good Payment: Load Request Error %s", err.Error())
-		utils.LogMessage(m)
-		utils.ErrorJson("LoadRequest "+err.Error(), c)
-		return
-	}
 	// redirect to GoodURL
 	utils.OnSuccessToken(request.GoodURL, form, response, c)
 }

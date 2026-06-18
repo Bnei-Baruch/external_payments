@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json/v2"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -226,8 +226,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 		p.TotalX100,
 	}
 	params, _ := json.Marshal(v)
-	fmt.Println("----------> SERVICE: https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey")
-	resp, err := pelecardClient.Post("https://gateway20.pelecard.biz:443/PaymentGW/ValidateByUniqueKey", "application/json", bytes.NewBuffer(params))
+	resp, err := pelecardClient.Post(p.Url+"/ValidateByUniqueKey", "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		fmt.Println("Err != nil :(", err)
 		return
@@ -238,7 +237,7 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 		return
 	}
 
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	bodyBytes, _ := io.ReadAll(resp.Body)
 	bodyString := string(bodyBytes)
 	if bodyString == "1" {
 		valid = true
