@@ -103,6 +103,41 @@ func (p *PeleCard) Init(organization string, peleCard types.PelecardType, new bo
 	return
 }
 
+func (p *PeleCard) GetTransDataByTrxId(trxId string) (err error, msg map[string]any) {
+	type req struct {
+		TerminalNumber string `json:"terminalNumber"`
+		User           string `json:"user"`
+		Password       string `json:"password"`
+		DebitTrxId     string `json:"DebitTrxId"`
+	}
+	r := req{
+		TerminalNumber: p.Terminal,
+		User:           p.User,
+		Password:       p.Password,
+		DebitTrxId:     trxId,
+	}
+	params, _ := json.Marshal(r)
+	url := p.Service + "/GetTransDataByTrxId"
+	errLogger := gin.DefaultErrorWriter
+	_, _ = errLogger.Write([]byte(fmt.Sprintf("----------> SERVICE: %s\n", url)))
+	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	var body map[string]any
+	json.UnmarshalRead(resp.Body, &body)
+	if status, ok := body["StatusCode"]; ok {
+		if status == "000" {
+			msg = body["ResultData"].(map[string]any)
+		} else {
+			err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
+		}
+	}
+	log.Printf("[GetTransDataByTrxId] err=%v msg=%+v", err, msg)
+	return
+}
+
 func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[string]any) {
 	// Send only the 4 fields GetTransaction requires — sending the full PeleCard
 	// struct causes 598 ("Necessary values missing/wrong") on gateway21.
@@ -221,6 +256,7 @@ func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, resul
 		s.AuthorizationNumber = p.AuthorizationNumber
 	}
 	err, result = p.services("/DebitRegularType", s)
+	log.Printf("[ChargeByToken] err=%v result=%+v", err, result)
 	return
 }
 

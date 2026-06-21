@@ -349,7 +349,7 @@ func Charge(c *gin.Context) {
 		return
 	}
 	var txMsg map[string]any
-	if err, txMsg = card.GetTransaction(txId); err != nil {
+	if err, txMsg = card.GetTransDataByTrxId(txId); err != nil {
 		// Transient verify failure — leave in-process for ext2fix reconciliation.
 		m := fmt.Sprintf("Charge: GetTransaction verify failed %s", err.Error())
 		utils.LogMessage(m)

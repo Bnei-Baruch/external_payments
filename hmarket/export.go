@@ -54,6 +54,16 @@ func Export(c *gin.Context) {
 	}
 }
 
+func Status(c *gin.Context) {
+	users, activities, err := db.GetHMarketStatus()
+	if err != nil {
+		log.Printf("[hmarket/status] query error: %v", err)
+		c.JSON(500, gin.H{"error": "db error"})
+		return
+	}
+	c.JSON(200, gin.H{"users": users, "activities": activities})
+}
+
 func SubscriptionStatus(c *gin.Context) {
 	users, err := db.GetHMarketUsers()
 	if err != nil {

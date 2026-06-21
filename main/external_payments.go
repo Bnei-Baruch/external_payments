@@ -126,6 +126,7 @@ func router(r *gin.Engine, isProd bool) {
 		hmarketGroup.POST("/form", hmarket.Form)
 		hmarketGroup.GET("/shopify", hmarket.Shopify)
 		hmarketGroup.POST("/shopify", hmarket.Shopify)
+		hmarketGroup.GET("/status", hmarket.Status)
 	}
 	hmarketAuth := r.Group("/hmarket", hmarket.AuthMiddleware())
 	{

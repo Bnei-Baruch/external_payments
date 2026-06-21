@@ -82,12 +82,17 @@ func Shopify(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[hmarket/shopify] raw body: %s", string(body))
+
 	var checkout shopifyCheckout
 	if err := json.Unmarshal(body, &checkout); err != nil {
 		log.Printf("[hmarket/shopify] parse error: %v", err)
 		c.JSON(400, gin.H{"error": "invalid JSON"})
 		return
 	}
+
+	log.Printf("[hmarket/shopify] cart=%s completed_at=%v email=%s phone=%s billing=%+v",
+		checkout.CartToken, checkout.CompletedAt, checkout.Email, checkout.Phone, checkout.BillingAddress)
 
 	if checkout.CompletedAt == nil || *checkout.CompletedAt == "" {
 		c.JSON(200, gin.H{"status": "ignored"})

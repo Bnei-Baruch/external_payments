@@ -104,6 +104,15 @@ func GetHMarketExportData() (rows []types.HMarketExportRow, err error) {
 	return
 }
 
+func GetHMarketStatus() (users int64, activities int64, err error) {
+	err = db.Get(&users, `SELECT COUNT(*) FROM hmarket_users`)
+	if err != nil {
+		return
+	}
+	err = db.Get(&activities, `SELECT COUNT(*) FROM hmarket_activities`)
+	return
+}
+
 func GetHMarketSubHistory() (rows []types.HMarketSubHistoryRecord, err error) {
 	err = db.Select(&rows, `
 		SELECT id, user_id, description, status, change_type, created_at

@@ -333,7 +333,7 @@ func GoodPayment(c *gin.Context) {
 		ErrorJson("First Charge: no transaction ID returned", c)
 		return
 	}
-	if err, msg = card.GetTransaction(txId); err != nil {
+	if err, msg = card.GetTransDataByTrxId(txId); err != nil {
 		// Transient verify failure — leave in-process for ext2fix reconciliation.
 		m := fmt.Sprintf("Good Payment: GetTransaction verify failed %s", err.Error())
 		logMessage(m)
