@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -25,10 +24,8 @@ func BaseUrl() string {
 }
 
 func LogMessage(message string) {
-	currentTime := time.Now()
 	errLogger := gin.DefaultErrorWriter
-	m := fmt.Sprintf("%s %s", currentTime.Format("2006-01-02 15:04:05"), message)
-	_, _ = errLogger.Write([]byte(m))
+	_, _ = errLogger.Write([]byte(message + "\n"))
 }
 
 func LoadPeleCardForm(c *gin.Context) (form types.PeleCardResponse) {

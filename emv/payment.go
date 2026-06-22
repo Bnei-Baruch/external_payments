@@ -48,6 +48,8 @@ func NewPayment(c *gin.Context) {
 			return
 		}
 	}
+	msg := fmt.Sprintf("NewPayment: %+v", request)
+	utils.LogMessage(msg)
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		msg := fmt.Sprintf("New Payment Validation Error: %+v", errors)
 		utils.LogMessage(msg)
