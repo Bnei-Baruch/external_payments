@@ -24,6 +24,7 @@ import (
 	"external_payments/emv"
 	"external_payments/hmarket"
 	"external_payments/payment"
+	paypalhandler "external_payments/paypal"
 	renewcard "external_payments/renew-card"
 	"external_payments/token"
 	"external_payments/utils"
@@ -135,10 +136,15 @@ func router(r *gin.Engine, isProd bool) {
 		hmarketAuth.POST("/blacklist", hmarket.Blacklist)
 	}
 
-	paypal := r.Group("/paypal")
+	withPaypal := r.Group("/paypal")
 	{
-		paypal.GET("/confirm", ConfirmPaypal)
-		paypal.POST("/confirm", ConfirmPaypal)
+		withPaypal.GET("/new", paypalhandler.NewPayment)
+		withPaypal.POST("/new", paypalhandler.NewPayment)
+		withPaypal.GET("/good", paypalhandler.GoodPayment)
+		withPaypal.GET("/error", paypalhandler.ErrorPayment)
+		withPaypal.GET("/cancel", paypalhandler.CancelPayment)
+		withPaypal.GET("/confirm", paypalhandler.Confirm)
+		withPaypal.POST("/confirm", paypalhandler.Confirm)
 	}
 
 	projects := r.Group("/projects/:language/:project_name")
