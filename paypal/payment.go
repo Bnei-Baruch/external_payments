@@ -110,7 +110,11 @@ func NewPayment(c *gin.Context) {
 		return
 	}
 
-	if err = db.SetPaypalOrderId(request.UserKey, order.ID); err != nil {
+	paypalEnv := os.Getenv("PAYPAL_ENV")
+	if paypalEnv == "" {
+		paypalEnv = "live"
+	}
+	if err = db.SetPaypalOrderId(request.UserKey, order.ID, paypalEnv); err != nil {
 		utils.LogMessage(fmt.Sprintf("PayPal NewPayment SetPaypalOrderId: %s", err))
 	}
 

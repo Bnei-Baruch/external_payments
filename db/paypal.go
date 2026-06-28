@@ -6,11 +6,11 @@ import (
 	"external_payments/types"
 )
 
-// SetPaypalOrderId stores the PayPal order ID so pp2fix can reconcile stuck payments.
-func SetPaypalOrderId(userKey, orderID string) error {
+// SetPaypalOrderId stores the PayPal order ID and environment so pp2fix can reconcile stuck payments.
+func SetPaypalOrderId(userKey, orderID, env string) error {
 	return execInTx(
-		"UPDATE civicrm_bb_ext_requests SET paypal_order_id = ? WHERE user_key = ? ORDER BY id DESC LIMIT 1",
-		orderID, userKey,
+		"UPDATE civicrm_bb_ext_requests SET paypal_order_id = ?, paypal_env = ? WHERE user_key = ? ORDER BY id DESC LIMIT 1",
+		orderID, env, userKey,
 	)
 }
 

@@ -130,6 +130,8 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS paypal_order_id VARCHAR(64);`),
 		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS paypal_env VARCHAR(10);`),
+		heredoc.Doc(`
 	ALTER TABLE hmarket_activities ADD COLUMN IF NOT EXISTS cart_token VARCHAR(64);`),
 		heredoc.Doc(`
 	CREATE UNIQUE INDEX IF NOT EXISTS ux_cart_product ON hmarket_activities(cart_token, product_id);`),
