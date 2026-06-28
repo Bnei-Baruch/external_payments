@@ -171,7 +171,11 @@ func GoodPayment(c *gin.Context) {
 	paymentDate := time.Now().Format("2006-01-02 15:04:05")
 	utils.LogMessage(fmt.Sprintf("PayPal GoodPayment: captureID=%s date=%s", captureID, paymentDate))
 
-	if err = db.StorePaypalCapture(request, captureID, paymentDate); err != nil {
+	paypalEnv := os.Getenv("PAYPAL_ENV")
+	if paypalEnv == "" {
+		paypalEnv = "live"
+	}
+	if err = db.StorePaypalCapture(request, captureID, paymentDate, paypalEnv); err != nil {
 		utils.LogMessage(fmt.Sprintf("PayPal GoodPayment StorePaypalCapture: %s", err))
 	}
 
