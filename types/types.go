@@ -49,7 +49,9 @@ type PaymentRequest struct {
 	UserKey   string `json:"UserKey" form:"UserKey" db:"user_key" validate:"string,required"`
 	CreatedAt string `json:"-" db:"created_at"`
 	Status    string `json:"-" db:"status"`
-	PStatus   string `json:"-" db:"pstatus"`
+	PStatus      string `json:"-" db:"pstatus"`
+	PaypalOrderId *string `json:"-" db:"paypal_order_id"`
+	PaypalEnv     *string `json:"-" db:"paypal_env"`
 
 	// Part for Pelecard
 	GoodURL    string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`

@@ -196,7 +196,8 @@ func GoodPayment(c *gin.Context) {
 		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment captureID fallback to capture.ID: %s", captureID))
 	}
 
-	paymentDate := time.Now().Format("2006-01-02 15:04:05")
+	loc, _ := time.LoadLocation("Asia/Jerusalem")
+	paymentDate := time.Now().In(loc).Format("2006-01-02 15:04:05")
 	env := paypalEnv()
 	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment storing capture: captureID=%s date=%s env=%s", captureID, paymentDate, env))
 

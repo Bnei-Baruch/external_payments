@@ -82,8 +82,6 @@ func Shopify(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[hmarket/shopify] raw body: %s", string(body))
-
 	var checkout shopifyCheckout
 	if err := json.Unmarshal(body, &checkout); err != nil {
 		log.Printf("[hmarket/shopify] parse error: %v", err)
