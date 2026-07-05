@@ -214,7 +214,7 @@ func GoodPayment(c *gin.Context) {
 	if strings.ContainsRune(request.GoodURL, '?') {
 		sep = "&"
 	}
-	target := fmt.Sprintf("%s%ssuccess=1&transaction_id=%s&order_id=%s", request.GoodURL, sep, captureID, orderID)
+	target := fmt.Sprintf("%s%ssuccess=1&transaction_id=%s&paypal_order_id=%s", request.GoodURL, sep, captureID, orderID)
 	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment redirecting to: %s", target))
 	html := "<script>window.location = '" + target + "';</script>"
 	c.Writer.WriteHeader(http.StatusOK)
