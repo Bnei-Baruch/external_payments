@@ -54,10 +54,9 @@ type HMarketExportRow struct {
 }
 
 type HMarketAudienceMonthRow struct {
-	Source     string `db:"source"`
-	Subscribed bool   `db:"subscribed"`
-	Month      string `db:"month"`
-	Count      int64  `db:"cnt"`
+	Source string `db:"source"`
+	Month  string `db:"month"`
+	Count  int64  `db:"cnt"`
 }
 
 type HMarketSubHistoryRecord struct {

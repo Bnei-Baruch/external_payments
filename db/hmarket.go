@@ -126,7 +126,6 @@ func GetHMarketAudiencesByMonth() (rows []types.HMarketAudienceMonthRow, err err
 	err = db.Select(&rows, `
 		SELECT
 		  a.source,
-		  u.subscribed,
 		  DATE_FORMAT(a.first_seen, '%Y-%m') AS month,
 		  COUNT(DISTINCT a.user_id) AS cnt
 		FROM (
@@ -135,8 +134,8 @@ func GetHMarketAudiencesByMonth() (rows []types.HMarketAudienceMonthRow, err err
 		  GROUP BY user_id, source
 		) a
 		JOIN hmarket_users u ON u.id = a.user_id AND u.blacklisted = 0
-		GROUP BY a.source, u.subscribed, DATE_FORMAT(a.first_seen, '%Y-%m')
-		ORDER BY a.source, month, u.subscribed
+		GROUP BY a.source, DATE_FORMAT(a.first_seen, '%Y-%m')
+		ORDER BY a.source, month
 	`)
 	return
 }

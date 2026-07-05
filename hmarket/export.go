@@ -3,6 +3,7 @@ package hmarket
 import (
 	"fmt"
 	"log"
+	"math"
 	"sort"
 	"strings"
 
@@ -63,21 +64,17 @@ func Audiences(c *gin.Context) {
 		return
 	}
 
-	// Collect months and sources; store new-user counts per (source, month, subscribed)
 	monthSet := map[string]struct{}{}
 	sourceSet := map[string]struct{}{}
-	newCounts := map[string]map[string]map[bool]int64{}
+	newCounts := map[string]map[string]int64{}
 
 	for _, r := range rows {
 		monthSet[r.Month] = struct{}{}
 		sourceSet[r.Source] = struct{}{}
 		if newCounts[r.Source] == nil {
-			newCounts[r.Source] = map[string]map[bool]int64{}
+			newCounts[r.Source] = map[string]int64{}
 		}
-		if newCounts[r.Source][r.Month] == nil {
-			newCounts[r.Source][r.Month] = map[bool]int64{}
-		}
-		newCounts[r.Source][r.Month][r.Subscribed] += r.Count
+		newCounts[r.Source][r.Month] += r.Count
 	}
 
 	months := make([]string, 0, len(monthSet))
@@ -92,22 +89,14 @@ func Audiences(c *gin.Context) {
 	}
 	sort.Strings(sources)
 
-	// Cumulate running totals per (source, subscribed) across months
-	type cumKey struct {
-		source     string
-		subscribed bool
-	}
-	running := map[cumKey]int64{}
-	cumul := map[string]map[string]map[bool]int64{}
+	// Cumulative totals per source, indexed by month position
+	cumul := map[string][]int64{}
 	for _, src := range sources {
-		cumul[src] = map[string]map[bool]int64{}
-		for _, m := range months {
-			cumul[src][m] = map[bool]int64{}
-			for _, sub := range []bool{false, true} {
-				k := cumKey{src, sub}
-				running[k] += newCounts[src][m][sub]
-				cumul[src][m][sub] = running[k]
-			}
+		cumul[src] = make([]int64, len(months))
+		var running int64
+		for i, m := range months {
+			running += newCounts[src][m]
+			cumul[src][i] = running
 		}
 	}
 
@@ -115,39 +104,31 @@ func Audiences(c *gin.Context) {
 	defer f.Close()
 	sheet := "Sheet1"
 
-	// Header row: "Source" then one column per month
+	// Header: "Source" | month | "%" | month | "%" | ...
 	f.SetCellValue(sheet, "A1", "Source")
 	for i, m := range months {
-		cell, _ := excelize.CoordinatesToCellName(i+2, 1)
-		f.SetCellValue(sheet, cell, m)
+		col := i*2 + 2
+		monthCell, _ := excelize.CoordinatesToCellName(col, 1)
+		f.SetCellValue(sheet, monthCell, m)
+		pctCell, _ := excelize.CoordinatesToCellName(col+1, 1)
+		f.SetCellValue(sheet, pctCell, "%")
 	}
 
 	row := 2
 	for _, src := range sources {
-		for _, info := range []struct {
-			label string
-			sub   bool
-			total bool
-		}{
-			{src + " - Interested", false, false},
-			{src + " - Bnei Baruch", true, false},
-			{src + " - Total", false, true},
-		} {
-			cell, _ := excelize.CoordinatesToCellName(1, row)
-			f.SetCellValue(sheet, cell, info.label)
-			for i, m := range months {
-				cell, _ := excelize.CoordinatesToCellName(i+2, row)
-				var v int64
-				if info.total {
-					v = cumul[src][m][false] + cumul[src][m][true]
-				} else {
-					v = cumul[src][m][info.sub]
-				}
-				f.SetCellValue(sheet, cell, v)
+		srcCell, _ := excelize.CoordinatesToCellName(1, row)
+		f.SetCellValue(sheet, srcCell, src)
+		for i := range months {
+			col := i*2 + 2
+			countCell, _ := excelize.CoordinatesToCellName(col, row)
+			f.SetCellValue(sheet, countCell, cumul[src][i])
+			if i > 0 && cumul[src][i-1] > 0 {
+				pct := math.Round(float64(cumul[src][i]-cumul[src][i-1])/float64(cumul[src][i-1])*1000) / 10
+				pctCell, _ := excelize.CoordinatesToCellName(col+1, row)
+				f.SetCellValue(sheet, pctCell, pct)
 			}
-			row++
 		}
-		row++ // blank separator between sources
+		row++
 	}
 
 	c.Header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
