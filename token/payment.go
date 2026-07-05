@@ -3,6 +3,7 @@ package token
 import (
 	"encoding/json/v2"
 	"fmt"
+	"math"
 	"net/http"
 		"strings"
 
@@ -81,7 +82,7 @@ func NewPayment(c *gin.Context) {
 	errorUrl := baseUrl + "/token/error"
 	cancelUrl := baseUrl + "/token/cancel"
 
-	total := int(float32(request.Price) * 100.00)
+	total := int(math.Round(request.Price * 100))
 
 	// Request Pelecard
 	card := &pelecard.PeleCard{
@@ -272,7 +273,7 @@ func GoodPayment(c *gin.Context) {
 	}
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(request.Price*100.00))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
 	card.Token = form.Token
 	card.AuthorizationNumber = form.ApprovalNo
 	var valid bool
@@ -307,7 +308,7 @@ func GoodPayment(c *gin.Context) {
 		Token:               form.Token,
 		AuthorizationNumber: form.ApprovalNo,
 		ParamX:              form.ParamX,
-		TotalX100:           fmt.Sprintf("%d", int(request.Price*100.00)),
+		TotalX100:           fmt.Sprintf("%d", int(math.Round(request.Price * 100))),
 	}
 	if err := card.Init(org, types.Recurrent, true); err != nil {
 		m := fmt.Sprintf("Good Payment: ApproveInit %s", err.Error())
@@ -487,7 +488,7 @@ func Charge(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-	total := fmt.Sprintf("%d", int(float32(request.Price)*100.00))
+	total := fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
 	card := &pelecard.PeleCard{
 		Token:               request.Token,
 		TotalX100:           total,
@@ -568,7 +569,7 @@ func ChargeX(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-	total := fmt.Sprintf("%d", int(float32(request.Price)*100.00))
+	total := fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
 	card := &pelecard.PeleCard{
 		Token:               request.Token,
 		TotalX100:           total,

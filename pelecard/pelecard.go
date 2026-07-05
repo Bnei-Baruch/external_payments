@@ -134,7 +134,6 @@ func (p *PeleCard) GetTransDataByTrxId(trxId string) (err error, msg map[string]
 			err = fmt.Errorf("%s: %s", status, body["ErrorMessage"])
 		}
 	}
-	log.Printf("[GetTransDataByTrxId] err=%v msg=%+v", err, msg)
 	return
 }
 
@@ -256,7 +255,6 @@ func (p *PeleCard) ChargeByToken(skipAuthorizationNumber bool) (err error, resul
 		s.AuthorizationNumber = p.AuthorizationNumber
 	}
 	err, result = p.services("/DebitRegularType", s)
-	log.Printf("[ChargeByToken] err=%v result=%+v", err, result)
 	return
 }
 
@@ -308,6 +306,8 @@ func (p *PeleCard) ValidateByUniqueKey() (valid bool, err error) {
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	bodyString := string(bodyBytes)
+	fmt.Printf("[ValidateByUniqueKey] UniqueKey=%s TotalX100=%s ConfirmationKey=%s response=%q\n",
+		p.UserKey, p.TotalX100, p.ConfirmationKey, bodyString)
 	if bodyString == "1" {
 		valid = true
 	}

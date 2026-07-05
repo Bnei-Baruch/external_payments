@@ -3,6 +3,7 @@ package renew_card
 import (
 	"encoding/json/v2"
 	"fmt"
+	"math"
 		"strings"
 
 	"github.com/gin-gonic/gin"
@@ -48,7 +49,7 @@ func RenewCard(c *gin.Context) {
 		currency = 978
 	}
 
-	total := int(float32(request.Price) * 100.00)
+	total := int(math.Round(request.Price * 100))
 
 	// Request Pelecard
 	baseUrl := utils.BaseUrl()

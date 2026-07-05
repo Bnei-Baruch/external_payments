@@ -134,6 +134,7 @@ func router(r *gin.Engine, isProd bool) {
 		hmarketAuth.GET("/export", hmarket.Export)
 		hmarketAuth.GET("/subscription-status", hmarket.SubscriptionStatus)
 		hmarketAuth.POST("/blacklist", hmarket.Blacklist)
+		hmarketAuth.GET("/audiences", hmarket.Audiences)
 	}
 
 	withPaypal := r.Group("/paypal")

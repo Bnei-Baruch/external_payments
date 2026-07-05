@@ -53,6 +53,13 @@ type HMarketExportRow struct {
 	Circle      string `db:"circle"`
 }
 
+type HMarketAudienceMonthRow struct {
+	Source     string `db:"source"`
+	Subscribed bool   `db:"subscribed"`
+	Month      string `db:"month"`
+	Count      int64  `db:"cnt"`
+}
+
 type HMarketSubHistoryRecord struct {
 	ID          int64  `db:"id"`
 	UserID      int64  `db:"user_id"`

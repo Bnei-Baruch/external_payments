@@ -3,6 +3,7 @@ package emv
 import (
 	"encoding/json/v2"
 	"fmt"
+	"math"
 		"strings"
 
 	"github.com/gin-gonic/gin"
@@ -180,7 +181,7 @@ func GoodToken(c *gin.Context) {
 
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(request.Price*100.00))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
 		m := fmt.Sprintf("Good Token: ValidateByUniqueKey error %s", err.Error())

@@ -3,6 +3,7 @@ package payment
 import (
 	"encoding/json/v2"
 	"fmt"
+	"math"
 	"net/http"
 		"runtime/debug"
 	"strings"
@@ -96,7 +97,7 @@ func NewPayment(c *gin.Context) {
 	errorUrl := baseUrl + "/payments/error"
 	cancelUrl := baseUrl + "/payments/cancel"
 
-	total := int(float32(request.Price) * 100.00)
+	total := int(math.Round(request.Price * 100))
 
 	// Request Pelecard
 	card := &pelecard.PeleCard{
@@ -254,7 +255,7 @@ func GoodPayment(c *gin.Context) {
 	}
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(request.Price*100.00))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
 		db.SetStatus(form.UserKey, "invalid")
