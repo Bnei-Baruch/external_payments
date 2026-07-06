@@ -330,7 +330,11 @@ func Charge(c *gin.Context) {
 		AuthorizationNumber: request.ApprovalNo,
 		ParamX:              request.Reference,
 	}
-	if err = card.Init(request.Organization, types.Regular, true); err != nil {
+	pelecardType := types.Regular
+	if request.IsRecurring {
+		pelecardType = types.Recurrent
+	}
+	if err = card.Init(request.Organization, pelecardType, true); err != nil {
 		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
 		utils.LogMessage(m)
 

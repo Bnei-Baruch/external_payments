@@ -57,8 +57,9 @@ type PaymentRequest struct {
 	GoodURL    string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
 	ErrorURL   string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
 	CancelURL  string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
-	ApprovalNo string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
-	Token      string `json:"Token" form:"Token" db:"-"`
+	ApprovalNo  string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
+	Token       string `json:"Token" form:"Token" db:"-"`
+	IsRecurring bool   `json:"IsRecurring" form:"IsRecurring" db:"-"`
 
 	// Part for Priority
 	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
