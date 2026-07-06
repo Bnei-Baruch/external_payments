@@ -180,6 +180,13 @@ func GoodPayment(c *gin.Context) {
 	m := fmt.Sprintf("Good Payment: %+v", form)
 	utils.LogMessage(m)
 
+	if status, _ := db.GetStatus(form.UserKey); status == "valid" || status == "in-process" {
+		m := fmt.Sprintf("Good Payment: duplicate callback ignored (status=%s) userKey=%s txId=%s", status, form.UserKey, form.PelecardTransactionId)
+		utils.LogMessage(m)
+		c.Status(http.StatusOK)
+		return
+	}
+
 	if form.PelecardStatusCode != "000" {
 		m := fmt.Sprintf("Good Payment: Pelecard error %s", form.PelecardStatusCode)
 		utils.LogMessage(m)

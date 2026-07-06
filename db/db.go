@@ -280,6 +280,11 @@ func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
 	return
 }
 
+func GetStatus(userKey string) (status string, err error) {
+	err = db.Get(&status, "SELECT COALESCE(status,'') FROM civicrm_bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
+	return
+}
+
 func GetOrganization(userKey string) (org string, err error) {
 	err = db.Get(&org,
 		heredoc.Doc(`
