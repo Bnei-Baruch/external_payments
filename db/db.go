@@ -134,6 +134,8 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS paypal_env VARCHAR(10);`),
 		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS is_recurring TINYINT(1) NOT NULL DEFAULT 0;`),
+		heredoc.Doc(`
 	ALTER TABLE hmarket_activities ADD COLUMN IF NOT EXISTS cart_token VARCHAR(64);`),
 		heredoc.Doc(`
 	CREATE UNIQUE INDEX IF NOT EXISTS ux_cart_product ON hmarket_activities(cart_token, product_id);`),
@@ -246,12 +248,12 @@ func StorePaypal(p types.PaypalRegister) {
 func StoreRequest(p types.PaymentRequest) (err error) {
 	request := heredoc.Doc(`
 		INSERT INTO civicrm_bb_ext_requests (
-			user_key, good_url, error_url, cancel_url, 
-			name, price, currency, email, phone, 
-			street, city, country, participants, details, sku, vat, installments, language, 
-			reference, organization, is_visual
+			user_key, good_url, error_url, cancel_url,
+			name, price, currency, email, phone,
+			street, city, country, participants, details, sku, vat, installments, language,
+			reference, organization, is_visual, is_recurring
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`)
 
@@ -259,7 +261,7 @@ func StoreRequest(p types.PaymentRequest) (err error) {
 		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
 		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
 		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference,
-		p.Organization, p.IsVisual,
+		p.Organization, p.IsVisual, p.IsRecurring,
 	)
 	return
 }

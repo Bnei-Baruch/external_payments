@@ -90,51 +90,62 @@ func NewPayment(c *gin.Context) {
 	returnURL := fmt.Sprintf("%s/paypal/good?UserKey=%s", baseURL, request.UserKey)
 	cancelURL := fmt.Sprintf("%s/paypal/cancel?UserKey=%s", baseURL, request.UserKey)
 
-	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment CreateOrder: currency=%s price=%s returnURL=%s cancelURL=%s",
-		currency, price, returnURL, cancelURL))
-
-	order, err := client.CreateOrder(ctx,
-		pp.OrderIntentCapture,
-		[]pp.PurchaseUnitRequest{{
-			Amount: &pp.PurchaseUnitAmount{
-				Currency: currency,
-				Value:    price,
-			},
-			Description: request.Details,
-			CustomID:    request.UserKey,
-		}},
-		nil,
-		&pp.ApplicationContext{
-			ReturnURL: returnURL,
-			CancelURL: cancelURL,
-		},
-	)
-	if err != nil {
-		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment CreateOrder error: %s", err))
-		utils.ErrorJson("CreateOrder: "+err.Error(), c)
-		return
-	}
-	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment order created: id=%s status=%s links=%+v",
-		order.ID, order.Status, order.Links))
+	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment CreateOrder: currency=%s price=%s returnURL=%s cancelURL=%s isRecurring=%v",
+		currency, price, returnURL, cancelURL, request.IsRecurring))
 
 	var approveURL string
-	for _, link := range order.Links {
-		if link.Rel == "approve" {
-			approveURL = link.Href
-			break
+	var orderID string
+
+	if request.IsRecurring {
+		approveURL, orderID, err = createVaultOrder(ctx, client, request, returnURL, cancelURL)
+		if err != nil {
+			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment createVaultOrder error: %s", err))
+			utils.ErrorJson("CreateVaultOrder: "+err.Error(), c)
+			return
 		}
-	}
-	if approveURL == "" {
-		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment no approve link in order links: %+v", order.Links))
-		utils.ErrorJson("PayPal: no approve link", c)
-		return
+		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment vault order created: id=%s approveURL=%s", orderID, approveURL))
+	} else {
+		order, orderErr := client.CreateOrder(ctx,
+			pp.OrderIntentCapture,
+			[]pp.PurchaseUnitRequest{{
+				Amount: &pp.PurchaseUnitAmount{
+					Currency: currency,
+					Value:    price,
+				},
+				Description: request.Details,
+				CustomID:    request.UserKey,
+			}},
+			nil,
+			&pp.ApplicationContext{
+				ReturnURL: returnURL,
+				CancelURL: cancelURL,
+			},
+		)
+		if orderErr != nil {
+			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment CreateOrder error: %s", orderErr))
+			utils.ErrorJson("CreateOrder: "+orderErr.Error(), c)
+			return
+		}
+		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment order created: id=%s status=%s", order.ID, order.Status))
+		orderID = order.ID
+		for _, link := range order.Links {
+			if link.Rel == "approve" {
+				approveURL = link.Href
+				break
+			}
+		}
+		if approveURL == "" {
+			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment no approve link in order links: %+v", order.Links))
+			utils.ErrorJson("PayPal: no approve link", c)
+			return
+		}
 	}
 
 	env := paypalEnv()
-	if err = db.SetPaypalOrderId(request.UserKey, order.ID, env); err != nil {
+	if err = db.SetPaypalOrderId(request.UserKey, orderID, env); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment SetPaypalOrderId error: %s", err))
 	} else {
-		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment saved orderID=%s env=%s userKey=%s", order.ID, env, request.UserKey))
+		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment saved orderID=%s env=%s userKey=%s", orderID, env, request.UserKey))
 	}
 
 	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment redirecting to approveURL=%s", approveURL))
@@ -171,29 +182,35 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
-	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment calling CaptureOrder orderID=%s", orderID))
-	capture, err := client.CaptureOrder(ctx, orderID, pp.CaptureOrderRequest{})
-	if err != nil {
-		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment CaptureOrder error: %s", err))
-		utils.OnRedirectURL(request.ErrorURL, "capture failed", "error", c)
-		return
-	}
-	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment CaptureOrder response: status=%s id=%s purchaseUnits=%+v",
-		capture.Status, capture.ID, capture.PurchaseUnits))
-
-	if capture.Status != "COMPLETED" {
-		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment capture not completed: status=%s", capture.Status))
-		utils.OnRedirectURL(request.ErrorURL, "capture not completed: "+capture.Status, "error", c)
-		return
-	}
-
-	captureID := capture.ID
-	if len(capture.PurchaseUnits) > 0 && capture.PurchaseUnits[0].Payments != nil &&
-		len(capture.PurchaseUnits[0].Payments.Captures) > 0 {
-		captureID = capture.PurchaseUnits[0].Payments.Captures[0].ID
-		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment captureID from PurchaseUnits: %s", captureID))
+	var captureID, vaultToken string
+	if request.IsRecurring {
+		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment vault capture orderID=%s", orderID))
+		captureID, vaultToken, err = captureVaultOrder(ctx, client, orderID)
+		if err != nil {
+			utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment captureVaultOrder error: %s", err))
+			utils.OnRedirectURL(request.ErrorURL, "capture failed", "error", c)
+			return
+		}
+		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment vault captureID=%s vaultToken=%s", captureID, tokenPreview(vaultToken)))
 	} else {
-		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment captureID fallback to capture.ID: %s", captureID))
+		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment calling CaptureOrder orderID=%s", orderID))
+		capture, captureErr := client.CaptureOrder(ctx, orderID, pp.CaptureOrderRequest{})
+		if captureErr != nil {
+			utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment CaptureOrder error: %s", captureErr))
+			utils.OnRedirectURL(request.ErrorURL, "capture failed", "error", c)
+			return
+		}
+		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment CaptureOrder: status=%s id=%s", capture.Status, capture.ID))
+		if capture.Status != "COMPLETED" {
+			utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment capture not completed: status=%s", capture.Status))
+			utils.OnRedirectURL(request.ErrorURL, "capture not completed: "+capture.Status, "error", c)
+			return
+		}
+		captureID = capture.ID
+		if len(capture.PurchaseUnits) > 0 && capture.PurchaseUnits[0].Payments != nil &&
+			len(capture.PurchaseUnits[0].Payments.Captures) > 0 {
+			captureID = capture.PurchaseUnits[0].Payments.Captures[0].ID
+		}
 	}
 
 	loc, _ := time.LoadLocation("Asia/Jerusalem")
@@ -215,6 +232,9 @@ func GoodPayment(c *gin.Context) {
 		sep = "&"
 	}
 	target := fmt.Sprintf("%s%ssuccess=1&transaction_id=%s&paypal_order_id=%s", request.GoodURL, sep, captureID, orderID)
+	if vaultToken != "" {
+		target += "&vault_token=" + vaultToken
+	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment redirecting to: %s", target))
 	html := "<script>window.location = '" + target + "';</script>"
 	c.Writer.WriteHeader(http.StatusOK)

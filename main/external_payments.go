@@ -146,6 +146,7 @@ func router(r *gin.Engine, isProd bool) {
 		withPaypal.GET("/cancel", paypalhandler.CancelPayment)
 		withPaypal.GET("/confirm", paypalhandler.Confirm)
 		withPaypal.POST("/confirm", paypalhandler.Confirm)
+		withPaypal.POST("/charge", paypalhandler.Charge)
 	}
 
 	projects := r.Group("/projects/:language/:project_name")

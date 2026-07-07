@@ -59,7 +59,7 @@ type PaymentRequest struct {
 	CancelURL  string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
 	ApprovalNo  string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
 	Token       string `json:"Token" form:"Token" db:"-"`
-	IsRecurring bool   `json:"IsRecurring" form:"IsRecurring" db:"-"`
+	IsRecurring bool   `json:"IsRecurring" form:"IsRecurring" db:"is_recurring"`
 
 	// Part for Priority
 	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
