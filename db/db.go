@@ -140,6 +140,9 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	CREATE UNIQUE INDEX IF NOT EXISTS ux_cart_product ON hmarket_activities(cart_token, product_id);`),
 		heredoc.Doc(`
+	CREATE INDEX IF NOT EXISTS idx_ext_req_ref_status_created
+		ON civicrm_bb_ext_requests(reference, status, created_at);`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),
@@ -280,6 +283,23 @@ func SetStatus(userKey string, value string) {
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {
 	err = db.Get(p, "SELECT * FROM civicrm_bb_ext_requests WHERE user_key = ? ORDER BY id DESC LIMIT 1", userKey)
 	return
+}
+
+// FindRecentSuccessfulCharge returns true if a successful charge for this reference
+// exists within the last hour — suppresses Action Scheduler retry double-charges.
+func FindRecentSuccessfulCharge(reference string) bool {
+	if reference == "" {
+		return false
+	}
+	var exists bool
+	err := db.Get(&exists, `
+		SELECT EXISTS(
+			SELECT 1 FROM civicrm_bb_ext_requests
+			WHERE reference = ? AND status = 'valid'
+			AND created_at > NOW() - INTERVAL 1 HOUR
+		)
+	`, reference)
+	return err == nil && exists
 }
 
 func GetStatus(userKey string) (status string, err error) {

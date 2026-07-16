@@ -38,6 +38,12 @@ func Charge(c *gin.Context) {
 		return
 	}
 
+	if db.FindRecentSuccessfulCharge(request.Reference) {
+		utils.LogMessage(fmt.Sprintf("[PayPal] Charge: duplicate suppressed reference=%s", request.Reference))
+		utils.ResultJson(map[string]string{"status": "success", "capture_id": ""}, c)
+		return
+	}
+
 	if err := db.StoreRequest(request); err != nil {
 		utils.ErrorJson("StoreRequest: "+err.Error(), c)
 		return

@@ -305,6 +305,12 @@ func Charge(c *gin.Context) {
 	m := fmt.Sprintf("Charge: %+v", request)
 	utils.LogMessage(m)
 
+	if db.FindRecentSuccessfulCharge(request.Reference) {
+		utils.LogMessage(fmt.Sprintf("Charge: duplicate suppressed reference=%s", request.Reference))
+		utils.ResultJson(map[string]string{"status": "success", "data": "{}"}, c)
+		return
+	}
+
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
 		m := fmt.Sprintf("Charge: Store request %s", err.Error())
