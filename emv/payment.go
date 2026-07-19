@@ -336,29 +336,35 @@ func Charge(c *gin.Context) {
 		AuthorizationNumber: request.ApprovalNo,
 		ParamX:              request.Reference,
 	}
-	pelecardType := types.Regular
+	terminals := []types.PelecardType{types.Regular}
 	if request.IsRecurring {
-		pelecardType = types.Recurrent
-	}
-	if err = card.Init(request.Organization, pelecardType, true); err != nil {
-		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
-		utils.LogMessage(m)
-
-		utils.ErrorJson("Charge PeleCard Init: "+err.Error(), c)
-		return
+		terminals = []types.PelecardType{types.Recurrent, types.Regular}
 	}
 
 	var msg map[string]any
-	var response = types.PaymentResponse{}
-
-	if err, msg = card.ChargeByToken(true); err != nil {
+	var chargeErr error
+	for i, termType := range terminals {
+		if initErr := card.Init(request.Organization, termType, true); initErr != nil {
+			utils.LogMessage(fmt.Sprintf("Charge: Init terminal %v error: %s", termType, initErr))
+			chargeErr = initErr
+			continue
+		}
+		chargeErr, msg = card.ChargeByToken(true)
+		if chargeErr == nil {
+			break
+		}
+		if i < len(terminals)-1 {
+			utils.LogMessage(fmt.Sprintf("Charge: terminal %v failed, trying regular: %s", termType, chargeErr))
+		}
+	}
+	if chargeErr != nil {
 		db.SetStatus(request.UserKey, "invalid")
-		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
-		utils.LogMessage(m)
-
-		utils.ErrorJson("Charge error "+err.Error(), c)
+		utils.LogMessage(fmt.Sprintf("Charge: all terminals failed: %s", chargeErr))
+		utils.ErrorJson("Charge error "+chargeErr.Error(), c)
 		return
 	}
+
+	var response = types.PaymentResponse{}
 
 	// Re-verify server-to-server before treating as paid.
 	txId, _ := msg["PelecardTransactionId"].(string)
