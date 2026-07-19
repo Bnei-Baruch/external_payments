@@ -3,10 +3,6 @@ package paypal
 import (
 	"context"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -51,15 +47,8 @@ func Charge(c *gin.Context) {
 	db.SetStatus(request.UserKey, "in-process")
 
 	ctx := c.Request.Context()
-	var captureID string
-	var err error
 
-	if strings.HasPrefix(request.Token, "B-") {
-		captureID, err = chargeNVP(request)
-	} else {
-		captureID, err = chargeVaultToken(ctx, request)
-	}
-
+	captureID, err := chargeVaultToken(ctx, request)
 	if err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] Charge error: %s", err))
 		db.SetStatus(request.UserKey, "invalid")
@@ -88,59 +77,6 @@ func tokenPreview(t string) string {
 		return t[:8] + "..."
 	}
 	return t
-}
-
-// chargeNVP charges via PayPal's legacy NVP DoReferenceTransaction API.
-// Used for existing subscriptions with billing agreement IDs (B-...).
-func chargeNVP(req types.PaymentRequest) (string, error) {
-	nvpUser := os.Getenv("PAYPAL_NVP_USER")
-	nvpPwd := os.Getenv("PAYPAL_NVP_PWD")
-	nvpSig := os.Getenv("PAYPAL_NVP_SIGNATURE")
-	if nvpUser == "" || nvpPwd == "" || nvpSig == "" {
-		return "", fmt.Errorf("PAYPAL_NVP_USER/PWD/SIGNATURE not configured")
-	}
-
-	nvpBase := "https://api-3t.paypal.com/nvp"
-	if os.Getenv("PAYPAL_ENV") == "sandbox" {
-		nvpBase = "https://api-3t.sandbox.paypal.com/nvp"
-	}
-
-	currency := req.Currency
-	if currency == "NIS" {
-		currency = "ILS"
-	}
-
-	params := url.Values{}
-	params.Set("METHOD", "DoReferenceTransaction")
-	params.Set("VERSION", "108.0")
-	params.Set("USER", nvpUser)
-	params.Set("PWD", nvpPwd)
-	params.Set("SIGNATURE", nvpSig)
-	params.Set("REFERENCEID", req.Token)
-	params.Set("AMT", fmt.Sprintf("%.2f", req.Price))
-	params.Set("CURRENCYCODE", currency)
-	params.Set("PAYMENTACTION", "Sale")
-	params.Set("DESC", req.Details)
-
-	utils.LogMessage(fmt.Sprintf("[PayPal] NVP DoReferenceTransaction: refID=%s amt=%.2f currency=%s", req.Token, req.Price, currency))
-
-	resp, err := http.Post(nvpBase, "application/x-www-form-urlencoded", strings.NewReader(params.Encode()))
-	if err != nil {
-		return "", fmt.Errorf("NVP request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	result, _ := url.ParseQuery(string(body))
-
-	ack := result.Get("ACK")
-	utils.LogMessage(fmt.Sprintf("[PayPal] NVP response: ACK=%s TRANSACTIONID=%s", ack, result.Get("TRANSACTIONID")))
-
-	if ack != "Success" && ack != "SuccessWithWarning" {
-		return "", fmt.Errorf("NVP error %s: %s", result.Get("L_ERRORCODE0"), result.Get("L_LONGMESSAGE0"))
-	}
-
-	return result.Get("TRANSACTIONID"), nil
 }
 
 // chargeVaultToken charges via PayPal REST API using a saved vault token.
