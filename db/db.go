@@ -134,6 +134,8 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS paypal_env VARCHAR(10);`),
 		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS vat VARCHAR(1) NOT NULL DEFAULT 'N';`),
+		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS is_recurring TINYINT(1) NOT NULL DEFAULT 0;`),
 		heredoc.Doc(`
 	ALTER TABLE hmarket_activities ADD COLUMN IF NOT EXISTS cart_token VARCHAR(64);`),
