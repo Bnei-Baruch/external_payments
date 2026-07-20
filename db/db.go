@@ -145,6 +145,10 @@ func initDB() (err error) {
 	CREATE INDEX IF NOT EXISTS idx_ext_req_ref_status_created
 		ON civicrm_bb_ext_requests(reference, status, created_at);`),
 		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS tax_type VARCHAR(1) NOT NULL DEFAULT '';`),
+		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS tax_id VARCHAR(20) NOT NULL DEFAULT '';`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),
@@ -256,9 +260,9 @@ func StoreRequest(p types.PaymentRequest) (err error) {
 			user_key, good_url, error_url, cancel_url,
 			name, price, currency, email, phone,
 			street, city, country, participants, details, sku, vat, installments, language,
-			reference, organization, is_visual, is_recurring
+			reference, organization, is_visual, is_recurring, tax_type, tax_id
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 		)
 	`)
 
@@ -266,7 +270,7 @@ func StoreRequest(p types.PaymentRequest) (err error) {
 		p.UserKey, p.GoodURL, p.ErrorURL, p.CancelURL,
 		p.Name, p.Price, p.Currency, p.Email, p.Phone, p.Street, p.City, p.Country,
 		p.Participans, p.Details, p.SKU, p.VAT, p.Installments, p.Language, p.Reference,
-		p.Organization, p.IsVisual, p.IsRecurring,
+		p.Organization, p.IsVisual, p.IsRecurring, p.TaxType, p.TaxId,
 	)
 	return
 }

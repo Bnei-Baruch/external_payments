@@ -79,6 +79,8 @@ type PaymentRequest struct {
 	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
 	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2|meshp18"`
 	IsVisual     bool    `json:"IsVisual" form:"IsVisual" db:"is_visual"`
+	TaxType      string  `json:"TaxType" form:"TaxType" db:"tax_type"`
+	TaxId        string  `json:"TaxId" form:"TaxId" db:"tax_id"`
 }
 
 type PeleCardResponse struct {
