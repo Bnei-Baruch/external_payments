@@ -485,6 +485,13 @@ func Charge(c *gin.Context) {
 	m := fmt.Sprintf("Charge: %+v", request)
 	logMessage(m)
 
+	if errFound, errors := validation.ValidateStruct(request); errFound {
+		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
+		logMessage(m)
+		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
+		return
+	}
+
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
 		m := fmt.Sprintf("Charge: Store request %s", err.Error())
@@ -565,6 +572,13 @@ func ChargeX(c *gin.Context) {
 
 	m := fmt.Sprintf("Charge: %+v", request)
 	logMessage(m)
+
+	if errFound, errors := validation.ValidateStruct(request); errFound {
+		m := fmt.Sprintf("ChargeX: Validation Error: %+v", errors)
+		logMessage(m)
+		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
+		return
+	}
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {

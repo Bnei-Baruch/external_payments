@@ -305,6 +305,13 @@ func Charge(c *gin.Context) {
 	m := fmt.Sprintf("Charge: %+v", request)
 	utils.LogMessage(m)
 
+	if errFound, errors := validation.ValidateStruct(request); errFound {
+		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
+		utils.LogMessage(m)
+		utils.ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
+		return
+	}
+
 	if db.FindRecentSuccessfulCharge(request.Reference) {
 		utils.LogMessage(fmt.Sprintf("Charge: duplicate suppressed reference=%s", request.Reference))
 		utils.ResultJson(map[string]string{"status": "success", "data": "{}"}, c)
