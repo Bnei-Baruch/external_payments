@@ -136,6 +136,10 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS vat VARCHAR(1) NOT NULL DEFAULT 'N';`),
 		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS tax_type VARCHAR(1) NOT NULL DEFAULT '';`),
+		heredoc.Doc(`
+	ALTER TABLE civicrm_bb_ext_paypal ADD COLUMN IF NOT EXISTS tax_id VARCHAR(20) NOT NULL DEFAULT '';`),
+		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS is_recurring TINYINT(1) NOT NULL DEFAULT 0;`),
 		heredoc.Doc(`
 	ALTER TABLE hmarket_activities ADD COLUMN IF NOT EXISTS cart_token VARCHAR(64);`),
@@ -284,6 +288,21 @@ func SetStatus(userKey string, value string) {
 	`)
 
 	_ = execInTx(request, value, value, userKey)
+}
+
+// ClaimProcessing atomically transitions status from "new" to "in-process".
+// Returns false if the record was already claimed (concurrent duplicate callback).
+func ClaimProcessing(userKey string) bool {
+	res, err := db.Exec(
+		`UPDATE civicrm_bb_ext_requests SET status='in-process', pstatus='in-process'
+		 WHERE user_key=? AND status='new' ORDER BY id DESC LIMIT 1`,
+		userKey,
+	)
+	if err != nil {
+		return false
+	}
+	n, _ := res.RowsAffected()
+	return n > 0
 }
 
 func LoadRequest(userKey string, p *types.PaymentRequest) (err error) {

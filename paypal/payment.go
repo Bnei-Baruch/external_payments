@@ -114,6 +114,7 @@ func NewPayment(c *gin.Context) {
 				},
 				Description: request.Details,
 				CustomID:    request.UserKey,
+				InvoiceID:   request.Reference,
 			}},
 			nil,
 			&pp.ApplicationContext{

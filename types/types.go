@@ -15,7 +15,7 @@ type PaypalRegister struct {
 	Id uint64 `json:"-" sql:"id,omitempty"`
 
 	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
-	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float"`
+	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float,min=0"`
 	Currency     string  `json:"Currency" form:"Currency" db:"currency" validate:"string,required,values=USD|EUR|NIS|ILS"`
 	Email        string  `json:"Email" form:"Email" db:"email" validate:"email,required"`
 	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string,required"`
@@ -46,30 +46,31 @@ type ConfirmRequest struct {
 type PaymentRequest struct {
 	Id uint64 `json:"-" sql:"id,omitempty"`
 
-	UserKey   string `json:"UserKey" form:"UserKey" db:"user_key" validate:"string,required"`
-	CreatedAt string `json:"-" db:"created_at"`
-	Status    string `json:"-" db:"status"`
-	PStatus      string `json:"-" db:"pstatus"`
+	UserKey       string  `json:"UserKey" form:"UserKey" db:"user_key" validate:"string,required"`
+	CreatedAt     string  `json:"-" db:"created_at"`
+	Status        string  `json:"-" db:"status"`
+	PStatus       string  `json:"-" db:"pstatus"`
 	PaypalOrderId *string `json:"-" db:"paypal_order_id"`
 	PaypalEnv     *string `json:"-" db:"paypal_env"`
 
 	// Part for Pelecard
-	GoodURL    string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
-	ErrorURL   string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
-	CancelURL  string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
-	ApprovalNo  string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
-	Token       string `json:"Token" form:"Token" db:"-"`
-	IsRecurring bool   `json:"IsRecurring" form:"IsRecurring" db:"is_recurring"`
+	GoodURL       string `json:"GoodURL" form:"GoodURL" db:"good_url" validate:"string,required"`
+	ErrorURL      string `json:"ErrorURL" form:"ErrorURL" db:"error_url" validate:"string,required"`
+	CancelURL     string `json:"CancelURL" form:"CancelURL" db:"cancel_url" validate:"string,required"`
+	ApprovalNo    string `json:"ApprovalNo" form:"ApprovalNo" db:"-"`
+	Token         string `json:"Token" form:"Token" db:"-"`
+	IsRecurring   bool   `json:"IsRecurring" form:"IsRecurring" db:"is_recurring"`
+	PluginVersion string `json:"PluginVersion" form:"PluginVersion" db:"-"`
 
 	// Part for Priority
 	Name         string  `json:"Name" form:"Name" db:"name" validate:"string,required"`
-	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float"`
+	Price        float64 `json:"Price" form:"Price" db:"price" validate:"float,min=0"`
 	Currency     string  `json:"Currency" form:"Currency" db:"currency" validate:"string,required,values=USD|EUR|NIS|ILS"`
 	Email        string  `json:"Email" form:"Email" db:"email" validate:"email,required"`
 	Phone        string  `json:"Phone" form:"Phone" db:"phone" validate:"string,required"`
 	Street       string  `json:"Street" form:"Street" db:"street" validate:"string"`
 	City         string  `json:"City" form:"City" db:"city" validate:"string"`
-	Country      string  `json:"Country" form:"Country" db:"country" validate:"string,required"`
+	Country      string  `json:"Country" form:"Country" db:"country" validate:"string,"`
 	Participans  string  `json:"Participants" form:"Participants" db:"participants" validate:"string"`
 	Details      string  `json:"Details" form:"Details" db:"details" validate:"string"`
 	SKU          string  `json:"SKU" form:"SKU" db:"sku" validate:"string,required"`

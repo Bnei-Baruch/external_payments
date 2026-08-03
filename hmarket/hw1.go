@@ -40,7 +40,7 @@ type wcLineItem struct {
 }
 
 type wcMetaData struct {
-	Key   string          `json:"key"`
+	Key   string         `json:"key"`
 	Value jsontext.Value `json:"value"`
 }
 
@@ -135,8 +135,8 @@ func HW1(c *gin.Context) {
 		return
 	}
 
-	source    := c.GetHeader("X-Wc-Webhook-Source")
-	rawPhone  := order.Billing.Phone
+	source := c.GetHeader("X-Wc-Webhook-Source")
+	rawPhone := order.Billing.Phone
 	uniqPhone := normalizePhone(rawPhone)
 	subscribed := extractSubscription(order.MetaData)
 

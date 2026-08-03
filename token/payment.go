@@ -206,14 +206,28 @@ func GoodPayment(c *gin.Context) {
 		return
 	}
 
+	// Atomically claim this callback — only one concurrent call can proceed.
+	if !db.ClaimProcessing(form.UserKey) {
+		status, _ := db.GetStatus(form.UserKey)
+		logMessage(fmt.Sprintf("Good Payment: duplicate callback suppressed status=%s userKey=%s", status, form.UserKey))
+		if status == "valid" {
+			var req types.PaymentRequest
+			if err = db.LoadRequest(form.UserKey, &req); err == nil {
+				v, _ := query.Values(types.PaymentResponse{UserKey: form.UserKey})
+				OnSuccess(req.GoodURL, v.Encode(), form.Token, form.ApprovalNo, c)
+				return
+			}
+		}
+		ErrorJson("duplicate callback", c)
+		return
+	}
+
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good Payment: %s", err.Error())
 		logMessage(m)
 		ErrorJson("UpdateRequestTemp: "+err.Error(), c)
 		return
 	}
-
-	db.SetStatus(form.UserKey, "in-process")
 	// civicrm_bb_ext_requests
 	org, err := db.GetOrganization(form.UserKey)
 	if err != nil {

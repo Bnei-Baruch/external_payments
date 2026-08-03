@@ -94,6 +94,22 @@ func (v NumberValidator) Validate(val any) (bool, error) {
 	return true, nil
 }
 
+// FloatValidator validates a float64 value against an optional exclusive minimum.
+type FloatValidator struct {
+	Min    float64
+	HasMin bool
+}
+
+func (v FloatValidator) Validate(val any) (bool, error) {
+	value := val.(float64)
+
+	if v.HasMin && value <= v.Min {
+		return false, fmt.Errorf("should be greater than %v", v.Min)
+	}
+
+	return true, nil
+}
+
 // EmailValidator checks if string is a valid email address.
 type EmailValidator struct {
 	Required bool
@@ -122,6 +138,16 @@ func getValidatorFromTag(tag string) Validator {
 	args := strings.Split(tag, ",")
 
 	switch args[0] {
+	case "float":
+		validator := FloatValidator{}
+		for _, flag := range args[1:] {
+			if strings.HasPrefix(flag, "min=") {
+				if _, err := fmt.Sscanf(flag, "min=%f", &validator.Min); err == nil {
+					validator.HasMin = true
+				}
+			}
+		}
+		return validator
 	case "number":
 		validator := NumberValidator{}
 		fmt.Sscanf(strings.Join(args[1:], ","), "min=%d,max=%d", &validator.Min, &validator.Max)

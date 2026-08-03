@@ -27,7 +27,7 @@ func Charge(c *gin.Context) {
 			return
 		}
 	}
-	utils.LogMessage(fmt.Sprintf("[PayPal] Charge: userKey=%s token=%s", request.UserKey, tokenPreview(request.Token)))
+	utils.LogMessage(fmt.Sprintf("[PayPal] Charge: %+v", request))
 
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		utils.ErrorJson("validateStruct: "+strings.Join(errors, "\n"), c)
@@ -101,6 +101,7 @@ func chargeVaultToken(ctx context.Context, req types.PaymentRequest) (string, er
 		},
 		Description: req.Details,
 		CustomID:    req.UserKey,
+		InvoiceID:   req.Reference,
 	}}, &pp.PaymentSource{
 		Token: &pp.PaymentSourceToken{
 			ID:   req.Token,
@@ -111,6 +112,16 @@ func chargeVaultToken(ctx context.Context, req types.PaymentRequest) (string, er
 		return "", fmt.Errorf("CreateOrder: %w", err)
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] Vault CreateOrder: id=%s status=%s", order.ID, order.Status))
+
+	// Vault token charges auto-capture at CreateOrder; skip CaptureOrder to avoid ORDER_ALREADY_CAPTURED.
+	if order.Status == "COMPLETED" {
+		captureID := order.ID
+		if len(order.PurchaseUnits) > 0 && order.PurchaseUnits[0].Payments != nil &&
+			len(order.PurchaseUnits[0].Payments.Captures) > 0 {
+			captureID = order.PurchaseUnits[0].Payments.Captures[0].ID
+		}
+		return captureID, nil
+	}
 
 	capture, err := client.CaptureOrder(ctx, order.ID, pp.CaptureOrderRequest{})
 	if err != nil {

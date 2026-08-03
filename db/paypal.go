@@ -20,15 +20,15 @@ func StorePaypalCapture(req types.PaymentRequest, captureID, paymentDate, env st
 	query := heredoc.Doc(`
 		INSERT INTO civicrm_bb_ext_paypal (
 			name, price, currency, email, phone, street, city, country, details, sku, language,
-			reference, organization, transaction_id, payment_date, voucher_id, invoice, paypal_env, vat
+			reference, organization, transaction_id, payment_date, voucher_id, invoice, paypal_env, vat, tax_type, tax_id
 		) VALUES (
-			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?, ?
+			?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '', '', ?, ?, ?, ?
 		)
 	`)
 	return execInTx(query,
 		req.Name, req.Price, req.Currency, req.Email, req.Phone,
 		req.Street, req.City, req.Country, req.Details, req.SKU,
 		req.Language, req.Reference, req.Organization,
-		captureID, paymentDate, env, req.VAT,
+		captureID, paymentDate, env, req.VAT, req.TaxType, req.TaxId,
 	)
 }

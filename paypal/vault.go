@@ -3,6 +3,7 @@ package paypal
 import (
 	"context"
 	"fmt"
+	"log"
 
 	pp "github.com/plutov/paypal/v4"
 
@@ -83,6 +84,7 @@ func createVaultOrder(ctx context.Context, client *pp.Client, req types.PaymentR
 			},
 			Description: req.Details,
 			CustomID:    req.UserKey,
+			InvoiceID:   req.Reference,
 		}},
 		PaymentSource: vaultPaymentSource{
 			Paypal: vaultPaypalSource{
@@ -111,14 +113,15 @@ func createVaultOrder(ctx context.Context, client *pp.Client, req types.PaymentR
 	}
 
 	orderID = resp.ID
+	log.Printf("[PayPal] vault order id=%s links=%+v", orderID, resp.Links)
 	for _, link := range resp.Links {
-		if link.Rel == "approve" {
+		if link.Rel == "approve" || link.Rel == "payer-action" {
 			approveURL = link.Href
 			break
 		}
 	}
 	if approveURL == "" {
-		err = fmt.Errorf("no approve link in vault order response")
+		err = fmt.Errorf("no approve link in vault order response (id=%s links=%v)", orderID, resp.Links)
 	}
 	return
 }
