@@ -152,7 +152,7 @@ func NewPayment(c *gin.Context) {
 		if total < 100 {
 			card.MaxPayments = 1
 		} else {
-			card.MaxPayments = total/500 + 2
+			card.MaxPayments = total/500 + 3
 		}
 		if card.MaxPayments > 10 {
 			card.MaxPayments = 10
