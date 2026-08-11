@@ -149,13 +149,10 @@ func NewPayment(c *gin.Context) {
 		}
 		card.MinPayments = 1
 		total = total / 100
-		if total < 100 {
-			card.MaxPayments = 1
+		if total > 500 {
+			card.MaxPayments = 5
 		} else {
-			card.MaxPayments = total/500 + 3
-		}
-		if card.MaxPayments > 10 {
-			card.MaxPayments = 10
+			card.MaxPayments = 1
 		}
 		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	} else {
