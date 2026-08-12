@@ -95,12 +95,7 @@ func NewPayment(c *gin.Context) {
 	if request.Organization == "ben2" {
 		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
 		card.MinPayments = 1
-		total = total / 100
-		if total > 500 {
-			card.MaxPayments = 5
-		} else {
-			card.MaxPayments = 1
-		}
+		card.MaxPayments = 1
 		if request.Language == "HE" {
 			card.TopText = "BB כרטיסי אשראי"
 			card.BottomText = "© בני ברוך קבלה לעם"
