@@ -76,6 +76,7 @@ type PaymentRequest struct {
 	SKU          string  `json:"SKU" form:"SKU" db:"sku" validate:"string,required"`
 	VAT          string  `json:"VAT" form:"VAT" db:"vat" validate:"bool,required,values=y|Y|n|N|t|T|f|F"`
 	Installments int     `json:"Installments" form:"Installments" db:"installments" validate:"number,min=1,max=12"`
+	MaxPayments  int     `json:"MaxPayments" form:"MaxPayments" db:"-" validate:"number,min=0,max=12"`
 	Language     string  `json:"Language" form:"Language" db:"language" validate:"string,required,values=EN|HE|RU|ES"`
 	Reference    string  `json:"Reference" form:"Reference" db:"reference" validate:"string,required"`
 	Organization string  `json:"Organization" form:"Organization" db:"organization" validate:"string,required,values=ben2|meshp18"`

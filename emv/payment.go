@@ -95,7 +95,11 @@ func NewPayment(c *gin.Context) {
 	if request.Organization == "ben2" {
 		card.LogoUrl = "https://checkout.kabbalah.info/logo1.png"
 		card.MinPayments = 1
-		card.MaxPayments = 1
+		if request.MaxPayments > 0 {
+			card.MaxPayments = request.MaxPayments
+		} else {
+			card.MaxPayments = 1
+		}
 		if request.Language == "HE" {
 			card.TopText = "BB כרטיסי אשראי"
 			card.BottomText = "© בני ברוך קבלה לעם"
@@ -140,14 +144,18 @@ func NewPayment(c *gin.Context) {
 			card.BottomText = "© Bnei Baruch Kabbalah laAm"
 		}
 		card.MinPayments = 1
-		total = total / 100
-		if total < 100 {
-			card.MaxPayments = 1
+		if request.MaxPayments > 0 {
+			card.MaxPayments = request.MaxPayments
 		} else {
-			card.MaxPayments = total/500 + 2
-		}
-		if card.MaxPayments > 10 {
-			card.MaxPayments = 10
+			total = total / 100
+			if total < 100 {
+				card.MaxPayments = 1
+			} else {
+				card.MaxPayments = total/500 + 2
+			}
+			if card.MaxPayments > 10 {
+				card.MaxPayments = 10
+			}
 		}
 		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	} else {
