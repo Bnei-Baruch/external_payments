@@ -26,7 +26,7 @@ func RenewCard(c *gin.Context) {
 		}
 	}
 
-	if errFound, errors := validation.ValidateStruct(request); errFound {
+	if errFound, errors := validation.ValidateStruct(request, "Price"); errFound {
 		msg := fmt.Sprintf("New J2 Validation Error: %+v", errors)
 		utils.LogMessage(msg)
 		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
