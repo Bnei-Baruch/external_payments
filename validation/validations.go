@@ -191,15 +191,26 @@ func getValidatorFromTag(tag string) Validator {
 
 //================================================
 
-// Performs actual data validation using validator definitions on the struct
-func ValidateStruct(s any) (found bool, errs []string) {
+// Performs actual data validation using validator definitions on the struct.
+// Field names passed in skipFields are excluded from validation (e.g. Price
+// does not apply to card-registration-only flows that never charge).
+func ValidateStruct(s any, skipFields ...string) (found bool, errs []string) {
 
 	found = false
+
+	skip := make(map[string]bool, len(skipFields))
+	for _, f := range skipFields {
+		skip[f] = true
+	}
 
 	// ValueOf returns a Value representing the run-time data
 	v := reflect.ValueOf(s)
 
 	for i := 0; i < v.NumField(); i++ {
+		if skip[v.Type().Field(i).Name] {
+			continue
+		}
+
 		// Get the field tag value
 		tag := v.Type().Field(i).Tag.Get(tagName)
 
