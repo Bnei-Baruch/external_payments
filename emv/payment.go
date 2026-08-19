@@ -30,11 +30,11 @@ func ConfirmPayment(c *gin.Context) {
 	var message []byte
 	if db.Confirm(&request) {
 		message = []byte("{\"status\":\"SUCCESS\"}")
-		msg := fmt.Sprintf("Confirm Payment FAILURE: %+v", request)
+		msg := fmt.Sprintf("Confirm Payment SUCCESS: %+v", request)
 		utils.LogMessage(msg)
 	} else {
 		message = []byte("{\"status\":\"FAILURE\"}")
-		msg := fmt.Sprintf("Confirm Payment SUCCESS: %+v", request)
+		msg := fmt.Sprintf("Confirm Payment FAILURE: %+v", request)
 		utils.LogMessage(msg)
 	}
 	_, _ = c.Writer.Write(message)

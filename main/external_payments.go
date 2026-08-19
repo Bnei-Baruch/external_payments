@@ -95,13 +95,17 @@ func router(r *gin.Engine, isProd bool) {
 		withToken.POST("/cancel", token.CancelPayment)
 		withToken.GET("/confirm", token.ConfirmPayment)
 		withToken.POST("/confirm", token.ConfirmPayment)
-		withToken.GET("/charge", token.Charge)
+		// GET retired: a charge over GET is reachable by CSRF, prefetch and link
+		// scanners, and leaks the request into logs and Referer headers.
+		withToken.GET("/charge", utils.Gone)
 		withToken.POST("/charge", token.Charge)
 		withToken.POST("/chargex", token.ChargeX)
 		withToken.POST("/refund", token.Refund)
-		withToken.POST("/authorize", token.AuthorizeCC)
-		withToken.POST("/authorizex", token.AuthorizeCCX)
-		withToken.POST("/authorizerecurr", token.AuthorizeCCRecurr)
+		// Retired: unauthenticated card-validity probes. Routed to Gone so any
+		// remaining caller is identified in the log; delete after 2026-09-16.
+		withToken.POST("/authorize", utils.Gone)
+		withToken.POST("/authorizex", utils.Gone)
+		withToken.POST("/authorizerecurr", utils.Gone)
 	}
 	withEmv := r.Group("/emv")
 	{
@@ -113,7 +117,8 @@ func router(r *gin.Engine, isProd bool) {
 		withEmv.POST("/cancel", emv.CancelPayment)
 		withEmv.GET("/confirm", emv.ConfirmPayment)
 		withEmv.POST("/confirm", emv.ConfirmPayment)
-		withEmv.GET("/charge", emv.Charge)
+		// GET retired — see /token/charge above.
+		withEmv.GET("/charge", utils.Gone)
 		withEmv.POST("/charge", emv.Charge)
 		withEmv.GET("/new_token", emv.NewToken)
 		withEmv.POST("/new_token", emv.NewToken)

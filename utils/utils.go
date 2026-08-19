@@ -28,6 +28,21 @@ func LogMessage(message string) {
 	_, _ = errLogger.Write([]byte(message + "\n"))
 }
 
+// Gone answers a retired endpoint. The route stays registered so remaining
+// callers fail loudly and identifiably instead of getting a 404.
+func Gone(c *gin.Context) {
+	LogMessage(fmt.Sprintf("GONE: %s %s ip=%s ua=%q referer=%q",
+		c.Request.Method, c.Request.URL.Path, c.ClientIP(),
+		c.Request.UserAgent(), c.Request.Referer()))
+
+	js, _ := json.Marshal(map[string]string{
+		"status": "error",
+		"error":  "endpoint removed",
+	})
+	c.Writer.WriteHeader(http.StatusGone)
+	_, _ = c.Writer.Write(js)
+}
+
 func LoadPeleCardForm(c *gin.Context) (form types.PeleCardResponse) {
 	form.PelecardTransactionId = c.PostForm("PelecardTransactionId")
 	form.PelecardStatusCode = c.PostForm("PelecardStatusCode")
