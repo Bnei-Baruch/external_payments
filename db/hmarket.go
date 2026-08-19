@@ -140,6 +140,50 @@ func GetHMarketAudiencesByMonth() (rows []types.HMarketAudienceMonthRow, err err
 	return
 }
 
+// CRMCircleAudienceSource labels the audience row for reported users who belong
+// to a circle. It matches the row name used in the audiences sheet.
+const CRMCircleAudienceSource = "CRM אנשי קשר בני ברוך"
+
+// unidentifiedCircle is an option in group 606 meaning the circle was never
+// identified, so it does not count as belonging to one.
+const unidentifiedCircle = "17"
+
+// GetCRMCircleAudienceByMonth counts reported users whose email belongs to a
+// CiviCRM contact in a named circle, bucketed by the month the user was first
+// seen. The caller accumulates these into a running total.
+//
+// Users are grouped by user_id alone rather than by (user_id, source), so
+// someone active under several sources is counted once — 66 of the reported
+// users appear in more than one. Users without an email cannot be matched and
+// are excluded.
+func GetCRMCircleAudienceByMonth() (rows []types.HMarketAudienceMonthRow, err error) {
+	err = db.Select(&rows, `
+		SELECT
+		  ? AS source,
+		  DATE_FORMAT(a.first_seen, '%Y-%m') AS month,
+		  COUNT(DISTINCT a.user_id) AS cnt
+		FROM (
+		  SELECT user_id, MIN(created_at) AS first_seen
+		  FROM hmarket_activities
+		  GROUP BY user_id
+		) a
+		JOIN hmarket_users u ON u.id = a.user_id AND u.blacklisted = 0
+		WHERE u.email <> ''
+		  AND EXISTS (
+		    SELECT 1
+		    FROM civicrm_email ce
+		    JOIN civicrm_value_member_data_223 m ON m.entity_id = ce.contact_id
+		    JOIN civicrm_option_value ov ON ov.option_group_id = 606
+		         AND ov.value = m.dropdown_circle_1708
+		    WHERE ce.email = u.email COLLATE utf8mb3_unicode_ci
+		      AND m.dropdown_circle_1708 <> ?
+		  )
+		GROUP BY month
+		ORDER BY month
+	`, CRMCircleAudienceSource, unidentifiedCircle)
+	return
+}
+
 func BlacklistHMarketUser(userID int64, blacklist bool) (found bool, err error) {
 	res, e := db.Exec(
 		`UPDATE hmarket_users SET blacklisted=? WHERE id=?`,

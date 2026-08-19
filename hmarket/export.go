@@ -64,6 +64,16 @@ func Audiences(c *gin.Context) {
 		return
 	}
 
+	// Circle members are a cross-source cut of the same users, so they come from
+	// their own query and join the month/cumulative treatment below as one row.
+	circleRows, err := db.GetCRMCircleAudienceByMonth()
+	if err != nil {
+		log.Printf("[hmarket/audiences] circle query error: %v", err)
+		c.JSON(500, gin.H{"error": "db error"})
+		return
+	}
+	rows = append(rows, circleRows...)
+
 	monthSet := map[string]struct{}{}
 	sourceSet := map[string]struct{}{}
 	newCounts := map[string]map[string]int64{}
