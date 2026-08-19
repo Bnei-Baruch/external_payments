@@ -49,14 +49,14 @@ func NewPayment(c *gin.Context) {
 			return
 		}
 	}
-	msg := fmt.Sprintf("NewPayment: %+v", request)
-	utils.LogMessage(msg)
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		msg := fmt.Sprintf("New Payment Validation Error: %+v", errors)
 		utils.LogMessage(msg)
 		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	msg := fmt.Sprintf("NewPayment: %+v", request)
+	utils.LogMessage(msg)
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
@@ -310,15 +310,14 @@ func Charge(c *gin.Context) {
 		}
 	}
 
-	m := fmt.Sprintf("Charge: %+v", request)
-	utils.LogMessage(m)
-
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
 		utils.LogMessage(m)
 		utils.ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	m := fmt.Sprintf("Charge: %+v", request)
+	utils.LogMessage(m)
 
 	if db.FindRecentSuccessfulCharge(request.Reference) {
 		utils.LogMessage(fmt.Sprintf("Charge: duplicate suppressed reference=%s", request.Reference))

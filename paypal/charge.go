@@ -27,12 +27,11 @@ func Charge(c *gin.Context) {
 			return
 		}
 	}
-	utils.LogMessage(fmt.Sprintf("[PayPal] Charge: %+v", request))
-
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		utils.ErrorJson("validateStruct: "+strings.Join(errors, "\n"), c)
 		return
 	}
+	utils.LogMessage(fmt.Sprintf("[PayPal] Charge: %+v", request))
 
 	if db.FindRecentSuccessfulCharge(request.Reference) {
 		utils.LogMessage(fmt.Sprintf("[PayPal] Charge: duplicate suppressed reference=%s", request.Reference))

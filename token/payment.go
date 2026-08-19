@@ -53,14 +53,14 @@ func NewPayment(c *gin.Context) {
 			return
 		}
 	}
-	msg := fmt.Sprintf("New Payment: %+v", request)
-	logMessage(msg)
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		msg := fmt.Sprintf("New Payment Validation Error: %+v", errors)
 		logMessage(msg)
 		ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	msg := fmt.Sprintf("New Payment: %+v", request)
+	logMessage(msg)
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
@@ -375,15 +375,14 @@ func Charge(c *gin.Context) {
 		}
 	}
 
-	m := fmt.Sprintf("Charge: %+v", request)
-	logMessage(m)
-
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
 		logMessage(m)
 		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	m := fmt.Sprintf("Charge: %+v", request)
+	logMessage(m)
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
@@ -463,15 +462,14 @@ func ChargeX(c *gin.Context) {
 		}
 	}
 
-	m := fmt.Sprintf("Charge: %+v", request)
-	logMessage(m)
-
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("ChargeX: Validation Error: %+v", errors)
 		logMessage(m)
 		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	m := fmt.Sprintf("Charge: %+v", request)
+	logMessage(m)
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {

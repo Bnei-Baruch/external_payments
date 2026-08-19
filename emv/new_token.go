@@ -24,14 +24,14 @@ func NewToken(c *gin.Context) {
 			return
 		}
 	}
-	msg := fmt.Sprintf("NewToken: %+v", request)
-	utils.LogMessage(msg)
 	if errFound, errors := validation.ValidateStruct(request, "Price"); errFound {
 		msg := fmt.Sprintf("NewToken Validation Error: %+v", errors)
 		utils.LogMessage(msg)
 		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	msg := fmt.Sprintf("NewToken: %+v", request)
+	utils.LogMessage(msg)
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {

@@ -58,13 +58,12 @@ func NewPayment(c *gin.Context) {
 			return
 		}
 	}
-	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment request: %+v", request))
-
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment validation errors: %+v", errors))
 		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
+	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment request: %+v", request))
 
 	if err = db.StoreRequest(request); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment StoreRequest error: %s", err))
