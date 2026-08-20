@@ -3,6 +3,7 @@ package paypal
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -23,12 +24,12 @@ func Charge(c *gin.Context) {
 	var request types.PaymentRequest
 	if err := c.ShouldBindJSON(&request); err != nil {
 		if err = c.ShouldBind(&request); err != nil {
-			utils.ErrorJson("Bind: "+err.Error(), c)
+			utils.ErrorJson(http.StatusBadRequest, "Bind: "+err.Error(), c)
 			return
 		}
 	}
 	if errFound, errors := validation.ValidateStruct(request); errFound {
-		utils.ErrorJson("validateStruct: "+strings.Join(errors, "\n"), c)
+		utils.ErrorJson(http.StatusBadRequest, "validateStruct: "+strings.Join(errors, "\n"), c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] Charge: %+v", request))
@@ -40,7 +41,7 @@ func Charge(c *gin.Context) {
 	}
 
 	if err := db.StoreRequest(request); err != nil {
-		utils.ErrorJson("StoreRequest: "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "StoreRequest: "+err.Error(), c)
 		return
 	}
 	db.SetStatus(request.UserKey, "in-process")
@@ -51,7 +52,7 @@ func Charge(c *gin.Context) {
 	if err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] Charge error: %s", err))
 		db.SetStatus(request.UserKey, "invalid")
-		utils.ErrorJson("charge failed: "+err.Error(), c)
+		utils.ErrorJson(http.StatusOK, "charge failed: "+err.Error(), c)
 		return
 	}
 

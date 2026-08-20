@@ -74,12 +74,22 @@ func OnRedirectURL(url string, msg string, status string, c *gin.Context) {
 	_, _ = c.Writer.Write([]byte(html))
 }
 
-func ErrorJson(message string, c *gin.Context) {
+// ErrorJson answers with a status matching the cause. The body shape is
+// unchanged: callers read {"status":"error"} rather than the code.
+//
+// Charge outcomes deliberately keep http.StatusOK. This service cannot yet
+// tell a declined card from a gateway outage, and VH treats a non-2xx as a
+// gateway error — which still falls back token to EMV, but raises a Sentry
+// exception. Every decline would page someone. Once decline codes are
+// structured, the outage case can move to 502.
+func ErrorJson(status int, message string, c *gin.Context) {
 	msg := map[string]string{
 		"status": "error",
 		"error":  message,
 	}
-	ResultJson(msg, c)
+	js, _ := json.Marshal(msg)
+	c.Writer.WriteHeader(status)
+	_, _ = c.Writer.Write(js)
 }
 
 func ResultJson(msg map[string]string, c *gin.Context) {
@@ -117,7 +127,7 @@ func ErrorPayment(c *gin.Context) {
 		m := fmt.Sprintf("ErrorPayment: UpdateRequestTemp %s", err.Error())
 		LogMessage(m)
 
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 
@@ -125,7 +135,7 @@ func ErrorPayment(c *gin.Context) {
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
 		m := fmt.Sprintf("ErrorPayment: LoadRequest %s", err.Error())
 		LogMessage(m)
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 	OnRedirectURL(request.ErrorURL, pelecard.GetMessage(form.PelecardStatusCode), "error", c)
@@ -137,13 +147,13 @@ func CancelPayment(c *gin.Context) {
 	form := LoadPeleCardForm(c)
 	db.SetStatus(form.UserKey, "cancel")
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 
 	var request = types.PaymentRequest{}
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 	OnRedirectURL(request.CancelURL, "", "cancel", c)

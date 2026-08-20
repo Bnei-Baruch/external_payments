@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-		"strings"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-querystring/query"
@@ -26,7 +26,7 @@ func ConfirmPayment(c *gin.Context) {
 	request := types.ConfirmRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBindQuery(&request); err != nil { // Bind by Query String (get)
-			ErrorJson("Confirm Bind "+err.Error(), c)
+			ErrorJson(http.StatusBadRequest, "Confirm Bind "+err.Error(), c)
 			return
 		}
 	}
@@ -49,14 +49,14 @@ func NewPayment(c *gin.Context) {
 	request := types.PaymentRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			ErrorJson("New Bind "+err.Error(), c)
+			ErrorJson(http.StatusBadRequest, "New Bind "+err.Error(), c)
 			return
 		}
 	}
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		msg := fmt.Sprintf("New Payment Validation Error: %+v", errors)
 		logMessage(msg)
-		ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
+		ErrorJson(http.StatusBadRequest, "New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 	msg := fmt.Sprintf("New Payment: %+v", request)
@@ -66,7 +66,7 @@ func NewPayment(c *gin.Context) {
 	if err = db.StoreRequest(request); err != nil {
 		msg := fmt.Sprintf("New Payment Store Error: %s", err.Error())
 		logMessage(msg)
-		ErrorJson("New StoreRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "New StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -157,7 +157,7 @@ func NewPayment(c *gin.Context) {
 	} else {
 		msg := fmt.Sprintf("New Payment: Unknown Organization")
 		logMessage(msg)
-		ErrorJson("Unknown Organization", c)
+		ErrorJson(http.StatusBadRequest, "Unknown Organization", c)
 		return
 	}
 
@@ -165,7 +165,7 @@ func NewPayment(c *gin.Context) {
 		msg := fmt.Sprintf("New Payment: Pelecard Init %s", err.Error())
 		logMessage(msg)
 
-		ErrorJson("PeleCard Init: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "PeleCard Init: "+err.Error(), c)
 		return
 	}
 
@@ -173,7 +173,7 @@ func NewPayment(c *gin.Context) {
 		msg := fmt.Sprintf("New Payment: Error GetRedirectUrl %s", err.Error())
 		logMessage(msg)
 
-		ErrorJson("GetRedirectUrl "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "GetRedirectUrl "+err.Error(), c)
 	} else {
 		OnRedirect(url, "", "success", c)
 	}
@@ -202,7 +202,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Pelecard error %s", form.PelecardStatusCode)
 		logMessage(m)
 		db.SetStatus(form.UserKey, "invalid")
-		ErrorJson("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		ErrorJson(http.StatusBadGateway, "Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
 		return
 	}
 
@@ -218,14 +218,14 @@ func GoodPayment(c *gin.Context) {
 				return
 			}
 		}
-		ErrorJson("duplicate callback", c)
+		ErrorJson(http.StatusOK, "duplicate callback", c)
 		return
 	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good Payment: %s", err.Error())
 		logMessage(m)
-		ErrorJson("UpdateRequestTemp: "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "UpdateRequestTemp: "+err.Error(), c)
 		return
 	}
 	// civicrm_bb_ext_requests
@@ -233,7 +233,7 @@ func GoodPayment(c *gin.Context) {
 	if err != nil {
 		m := fmt.Sprintf("Good Payment: GetOrganization Error %s", err.Error())
 		logMessage(m)
-		ErrorJson("GetOrganization: "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "GetOrganization: "+err.Error(), c)
 		return
 	}
 
@@ -243,7 +243,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Approve Init Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Approve Init: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "Approve Init: "+err.Error(), c)
 		return
 	}
 
@@ -252,7 +252,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: GetTransaction Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("GetTransaction: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "GetTransaction: "+err.Error(), c)
 		return
 	}
 
@@ -265,7 +265,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Update Request Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("UpdateRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "UpdateRequest "+err.Error(), c)
 		return
 	}
 	// real validation
@@ -274,7 +274,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Load Request Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("LoadRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "LoadRequest "+err.Error(), c)
 		return
 	}
 
@@ -282,12 +282,12 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Validation Init %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Validation Init "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "Validation Init "+err.Error(), c)
 		return
 	}
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price*100)))
 	card.Token = form.Token
 	card.AuthorizationNumber = form.ApprovalNo
 	var valid bool
@@ -296,7 +296,7 @@ func GoodPayment(c *gin.Context) {
 		logMessage(m)
 
 		db.SetStatus(form.UserKey, "invalid")
-		ErrorJson("ValidateByUniqueKey 1 "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "ValidateByUniqueKey 1 "+err.Error(), c)
 		return
 	}
 	if !valid {
@@ -304,7 +304,7 @@ func GoodPayment(c *gin.Context) {
 		m := fmt.Sprintf("Good Payment: Confirmation error 1 %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Confirmation error 1 ", c)
+		ErrorJson(http.StatusBadGateway, "Confirmation error 1 ", c)
 		return
 	}
 
@@ -322,13 +322,13 @@ func GoodPayment(c *gin.Context) {
 		Token:               form.Token,
 		AuthorizationNumber: form.ApprovalNo,
 		ParamX:              form.ParamX,
-		TotalX100:           fmt.Sprintf("%d", int(math.Round(request.Price * 100))),
+		TotalX100:           fmt.Sprintf("%d", int(math.Round(request.Price*100))),
 	}
 	if err := card.Init(org, types.Recurrent, true); err != nil {
 		m := fmt.Sprintf("Good Payment: ApproveInit %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Approve Init: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "Approve Init: "+err.Error(), c)
 		return
 	}
 	if err, msg = card.ChargeByToken(false); err != nil {
@@ -336,7 +336,7 @@ func GoodPayment(c *gin.Context) {
 		logMessage(m)
 
 		db.SetStatus(form.UserKey, "invalid")
-		ErrorJson("First Charge error ", c)
+		ErrorJson(http.StatusOK, "First Charge error ", c)
 		return
 	}
 
@@ -345,14 +345,14 @@ func GoodPayment(c *gin.Context) {
 	if txId == "" {
 		// Leave in-process — ext2fix will reconcile via CheckGoodParamX.
 		logMessage("Good Payment: no PelecardTransactionId in ChargeByToken response")
-		ErrorJson("First Charge: no transaction ID returned", c)
+		ErrorJson(http.StatusOK, "First Charge: no transaction ID returned", c)
 		return
 	}
 	if err, msg = card.GetTransDataByTrxId(txId); err != nil {
 		// Transient verify failure — leave in-process for ext2fix reconciliation.
 		m := fmt.Sprintf("Good Payment: GetTransaction verify failed %s", err.Error())
 		logMessage(m)
-		ErrorJson("First Charge verify failed: "+err.Error(), c)
+		ErrorJson(http.StatusOK, "First Charge verify failed: "+err.Error(), c)
 		return
 	}
 
@@ -370,7 +370,7 @@ func Charge(c *gin.Context) {
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			m := fmt.Sprintf("Charge: %s", err.Error())
 			logMessage(m)
-			ErrorJson("Charge Bind "+err.Error(), c)
+			ErrorJson(http.StatusBadRequest, "Charge Bind "+err.Error(), c)
 			return
 		}
 	}
@@ -378,7 +378,7 @@ func Charge(c *gin.Context) {
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
 		logMessage(m)
-		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
+		ErrorJson(http.StatusBadRequest, "Charge validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 	m := fmt.Sprintf("Charge: %+v", request)
@@ -388,7 +388,7 @@ func Charge(c *gin.Context) {
 	if err = db.StoreRequest(request); err != nil {
 		m := fmt.Sprintf("Charge: Store request %s", err.Error())
 		logMessage(m)
-		ErrorJson("Charge StoreRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "Charge StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -401,7 +401,7 @@ func Charge(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-	total := fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
+	total := fmt.Sprintf("%d", int(math.Round(request.Price*100)))
 	card := &pelecard.PeleCard{
 		Token:               request.Token,
 		TotalX100:           total,
@@ -413,7 +413,7 @@ func Charge(c *gin.Context) {
 		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge PeleCard Init: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "Charge PeleCard Init: "+err.Error(), c)
 		return
 	}
 
@@ -425,7 +425,7 @@ func Charge(c *gin.Context) {
 		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge error ", c)
+		ErrorJson(http.StatusOK, "Charge error ", c)
 		return
 	}
 	body, _ := json.Marshal(msg)
@@ -437,7 +437,7 @@ func Charge(c *gin.Context) {
 		m := fmt.Sprintf("Charge: UpdateRequest %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge UpdateRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "Charge UpdateRequest "+err.Error(), c)
 		return
 	}
 
@@ -458,7 +458,7 @@ func ChargeX(c *gin.Context) {
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			m := fmt.Sprintf("Charge: %s", err.Error())
 			logMessage(m)
-			ErrorJson("Charge Bind "+err.Error(), c)
+			ErrorJson(http.StatusBadRequest, "Charge Bind "+err.Error(), c)
 			return
 		}
 	}
@@ -466,7 +466,7 @@ func ChargeX(c *gin.Context) {
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("ChargeX: Validation Error: %+v", errors)
 		logMessage(m)
-		ErrorJson("Charge validateStruct "+strings.Join(errors, "\n"), c)
+		ErrorJson(http.StatusBadRequest, "Charge validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 	m := fmt.Sprintf("Charge: %+v", request)
@@ -476,7 +476,7 @@ func ChargeX(c *gin.Context) {
 	if err = db.StoreRequest(request); err != nil {
 		m := fmt.Sprintf("Charge: Store request %s", err.Error())
 		logMessage(m)
-		ErrorJson("Charge StoreRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "Charge StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -489,7 +489,7 @@ func ChargeX(c *gin.Context) {
 	case "EUR":
 		currency = 978
 	}
-	total := fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
+	total := fmt.Sprintf("%d", int(math.Round(request.Price*100)))
 	card := &pelecard.PeleCard{
 		Token:               request.Token,
 		TotalX100:           total,
@@ -501,7 +501,7 @@ func ChargeX(c *gin.Context) {
 		m := fmt.Sprintf("Charge: pelecard init %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge PeleCard Init: "+err.Error(), c)
+		ErrorJson(http.StatusBadGateway, "Charge PeleCard Init: "+err.Error(), c)
 		return
 	}
 
@@ -513,7 +513,7 @@ func ChargeX(c *gin.Context) {
 		m := fmt.Sprintf("Charge: Charge Error %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge error ", c)
+		ErrorJson(http.StatusOK, "Charge error ", c)
 		return
 	}
 	body, _ := json.Marshal(msg)
@@ -525,7 +525,7 @@ func ChargeX(c *gin.Context) {
 		m := fmt.Sprintf("Charge: UpdateRequest %s", err.Error())
 		logMessage(m)
 
-		ErrorJson("Charge UpdateRequest "+err.Error(), c)
+		ErrorJson(http.StatusInternalServerError, "Charge UpdateRequest "+err.Error(), c)
 		return
 	}
 
@@ -538,12 +538,22 @@ func ChargeX(c *gin.Context) {
 	ResultJson(result, c)
 }
 
-func ErrorJson(message string, c *gin.Context) {
+// ErrorJson answers with a status matching the cause. The body shape is
+// unchanged: callers read {"status":"error"} rather than the code.
+//
+// Charge outcomes deliberately keep http.StatusOK. This service cannot yet
+// tell a declined card from a gateway outage, and VH treats a non-2xx as a
+// gateway error — which still falls back token to EMV, but raises a Sentry
+// exception. Every decline would page someone. Once decline codes are
+// structured, the outage case can move to 502.
+func ErrorJson(status int, message string, c *gin.Context) {
 	msg := map[string]string{
 		"status": "error",
 		"error":  message,
 	}
-	ResultJson(msg, c)
+	js, _ := json.Marshal(msg)
+	c.Writer.WriteHeader(status)
+	_, _ = c.Writer.Write(js)
 }
 
 func ErrorPayment(c *gin.Context) {
@@ -557,7 +567,7 @@ func ErrorPayment(c *gin.Context) {
 		m := fmt.Sprintf("ErrorPayment: UpdateRequestTemp %s", err.Error())
 		logMessage(m)
 
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 
@@ -565,7 +575,7 @@ func ErrorPayment(c *gin.Context) {
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
 		m := fmt.Sprintf("ErrorPayment: LoadRequest %s", err.Error())
 		logMessage(m)
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 	OnRedirectURL(request.ErrorURL, pelecard.GetMessage(form.PelecardStatusCode), "error", c)
@@ -577,13 +587,13 @@ func CancelPayment(c *gin.Context) {
 	form := loadPeleCardForm(c)
 	db.SetStatus(form.UserKey, "cancel")
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 
 	var request = types.PaymentRequest{}
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		ErrorJson(err.Error(), c)
+		ErrorJson(http.StatusOK, err.Error(), c)
 		return
 	}
 	OnRedirectURL(request.CancelURL, "", "cancel", c)

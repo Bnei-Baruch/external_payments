@@ -54,20 +54,20 @@ func NewPayment(c *gin.Context) {
 	if err = c.ShouldBindJSON(&request); err != nil {
 		if err = c.ShouldBind(&request); err != nil {
 			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment bind error: %s", err))
-			utils.ErrorJson("New Bind "+err.Error(), c)
+			utils.ErrorJson(http.StatusBadRequest, "New Bind "+err.Error(), c)
 			return
 		}
 	}
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment validation errors: %+v", errors))
-		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
+		utils.ErrorJson(http.StatusBadRequest, "New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment request: %+v", request))
 
 	if err = db.StoreRequest(request); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment StoreRequest error: %s", err))
-		utils.ErrorJson("StoreRequest "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "StoreRequest "+err.Error(), c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment stored request userKey=%s", request.UserKey))
@@ -76,7 +76,7 @@ func NewPayment(c *gin.Context) {
 	ctx := c.Request.Context()
 	client, err := newClient(ctx)
 	if err != nil {
-		utils.ErrorJson("PayPal client: "+err.Error(), c)
+		utils.ErrorJson(http.StatusOK, "PayPal client: "+err.Error(), c)
 		return
 	}
 
@@ -99,7 +99,7 @@ func NewPayment(c *gin.Context) {
 		approveURL, orderID, err = createVaultOrder(ctx, client, request, returnURL, cancelURL)
 		if err != nil {
 			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment createVaultOrder error: %s", err))
-			utils.ErrorJson("CreateVaultOrder: "+err.Error(), c)
+			utils.ErrorJson(http.StatusOK, "CreateVaultOrder: "+err.Error(), c)
 			return
 		}
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment vault order created: id=%s approveURL=%s", orderID, approveURL))
@@ -123,7 +123,7 @@ func NewPayment(c *gin.Context) {
 		)
 		if orderErr != nil {
 			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment CreateOrder error: %s", orderErr))
-			utils.ErrorJson("CreateOrder: "+orderErr.Error(), c)
+			utils.ErrorJson(http.StatusOK, "CreateOrder: "+orderErr.Error(), c)
 			return
 		}
 		utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment order created: id=%s status=%s", order.ID, order.Status))
@@ -136,7 +136,7 @@ func NewPayment(c *gin.Context) {
 		}
 		if approveURL == "" {
 			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment no approve link in order links: %+v", order.Links))
-			utils.ErrorJson("PayPal: no approve link", c)
+			utils.ErrorJson(http.StatusOK, "PayPal: no approve link", c)
 			return
 		}
 	}
@@ -169,7 +169,7 @@ func GoodPayment(c *gin.Context) {
 	var request types.PaymentRequest
 	if err := db.LoadRequest(userKey, &request); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment LoadRequest error: %s", err))
-		utils.ErrorJson("load request failed", c)
+		utils.ErrorJson(http.StatusInternalServerError, "load request failed", c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] GoodPayment loaded request: org=%s price=%f currency=%s goodURL=%s",
@@ -249,7 +249,7 @@ func ErrorPayment(c *gin.Context) {
 	var request types.PaymentRequest
 	if err := db.LoadRequest(userKey, &request); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] ErrorPayment LoadRequest error: %s", err))
-		utils.ErrorJson("load request failed", c)
+		utils.ErrorJson(http.StatusInternalServerError, "load request failed", c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] ErrorPayment redirecting to errorURL=%s", request.ErrorURL))
@@ -264,7 +264,7 @@ func CancelPayment(c *gin.Context) {
 	var request types.PaymentRequest
 	if err := db.LoadRequest(userKey, &request); err != nil {
 		utils.LogMessage(fmt.Sprintf("[PayPal] CancelPayment LoadRequest error: %s", err))
-		utils.ErrorJson("load request failed", c)
+		utils.ErrorJson(http.StatusInternalServerError, "load request failed", c)
 		return
 	}
 	utils.LogMessage(fmt.Sprintf("[PayPal] CancelPayment redirecting to cancelURL=%s", request.CancelURL))
@@ -278,7 +278,7 @@ func Confirm(c *gin.Context) {
 	if err = c.ShouldBindJSON(&request); err != nil {
 		if err = c.ShouldBindQuery(&request); err != nil {
 			utils.LogMessage(fmt.Sprintf("[PayPal] Confirm bind error: %s", err))
-			utils.ErrorJson("Bind "+err.Error(), c)
+			utils.ErrorJson(http.StatusBadRequest, "Bind "+err.Error(), c)
 			return
 		}
 	}
@@ -286,4 +286,3 @@ func Confirm(c *gin.Context) {
 	db.StorePaypal(request)
 	c.Status(http.StatusOK)
 }
-

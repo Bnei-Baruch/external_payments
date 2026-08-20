@@ -4,7 +4,8 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"math"
-		"strings"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -20,14 +21,14 @@ func NewToken(c *gin.Context) {
 	request := types.PaymentRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			utils.ErrorJson("New Bind "+err.Error(), c)
+			utils.ErrorJson(http.StatusBadRequest, "New Bind "+err.Error(), c)
 			return
 		}
 	}
 	if errFound, errors := validation.ValidateStruct(request, "Price"); errFound {
 		msg := fmt.Sprintf("NewToken Validation Error: %+v", errors)
 		utils.LogMessage(msg)
-		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
+		utils.ErrorJson(http.StatusBadRequest, "New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 	msg := fmt.Sprintf("NewToken: %+v", request)
@@ -37,7 +38,7 @@ func NewToken(c *gin.Context) {
 	if err = db.StoreRequest(request); err != nil {
 		msg := fmt.Sprintf("NewToken Store Error: %s", err.Error())
 		utils.LogMessage(msg)
-		utils.ErrorJson("New StoreRequest "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "New StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -119,7 +120,7 @@ func NewToken(c *gin.Context) {
 	} else {
 		msg := fmt.Sprintf("NewToken: Unknown Organization")
 		utils.LogMessage(msg)
-		utils.ErrorJson("Unknown Organization", c)
+		utils.ErrorJson(http.StatusBadRequest, "Unknown Organization", c)
 		return
 	}
 
@@ -127,7 +128,7 @@ func NewToken(c *gin.Context) {
 		msg := fmt.Sprintf("NewToken: Pelecard Init %s", err.Error())
 		utils.LogMessage(msg)
 
-		utils.ErrorJson("PeleCard Init: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "PeleCard Init: "+err.Error(), c)
 		return
 	}
 
@@ -135,7 +136,7 @@ func NewToken(c *gin.Context) {
 		msg := fmt.Sprintf("NewToken: Error GetRedirectUrl %s", err.Error())
 		utils.LogMessage(msg)
 
-		utils.ErrorJson("GetRedirectUrl "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "GetRedirectUrl "+err.Error(), c)
 	} else {
 		utils.OnRedirect(url, "", "success", c)
 	}
@@ -151,7 +152,7 @@ func GoodToken(c *gin.Context) {
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good Token: %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("UpdateRequestTemp: "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "UpdateRequestTemp: "+err.Error(), c)
 		return
 	}
 
@@ -161,39 +162,39 @@ func GoodToken(c *gin.Context) {
 	if err != nil {
 		m := fmt.Sprintf("Good Token: GetOrganization Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("GetOrganization: "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "GetOrganization: "+err.Error(), c)
 		return
 	}
 	card := &pelecard.PeleCard{}
 	if err := card.Init(org, types.Regular, true); err != nil {
 		m := fmt.Sprintf("Good Token: Approve Init Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("Approve Init: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "Approve Init: "+err.Error(), c)
 		return
 	}
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
 		m := fmt.Sprintf("Good Token: Load Request Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("LoadRequest "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "LoadRequest "+err.Error(), c)
 		return
 	}
 
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price*100)))
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
 		m := fmt.Sprintf("Good Token: ValidateByUniqueKey error %s", err.Error())
 		utils.LogMessage(m)
 		db.SetStatus(form.UserKey, "invalid")
-		utils.ErrorJson("ValidateByUniqueKey "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "ValidateByUniqueKey "+err.Error(), c)
 		return
 	}
 	if !valid {
 		db.SetStatus(form.UserKey, "invalid")
 		utils.LogMessage("Good Token: Confirmation error")
-		utils.ErrorJson("Confirmation error", c)
+		utils.ErrorJson(http.StatusBadGateway, "Confirmation error", c)
 		return
 	}
 
@@ -201,7 +202,7 @@ func GoodToken(c *gin.Context) {
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
 		m := fmt.Sprintf("Good Token: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("GetTransaction: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "GetTransaction: "+err.Error(), c)
 		return
 	}
 	var response = types.PaymentResponse{}

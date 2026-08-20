@@ -30,7 +30,7 @@ func RenewCard(c *gin.Context) {
 	if errFound, errors := validation.ValidateStruct(request, "Price"); errFound {
 		msg := fmt.Sprintf("New J2 Validation Error: %+v", errors)
 		utils.LogMessage(msg)
-		utils.ErrorJson("New validateStruct "+strings.Join(errors, "\n"), c)
+		utils.ErrorJson(http.StatusBadRequest, "New validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 
@@ -38,7 +38,7 @@ func RenewCard(c *gin.Context) {
 	if err = db.StoreRequest(request); err != nil {
 		msg := fmt.Sprintf("New J2 Store Error: %s", err.Error())
 		utils.LogMessage(msg)
-		utils.ErrorJson("New StoreRequest "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "New StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -129,21 +129,21 @@ func RenewCard(c *gin.Context) {
 	} else {
 		msg := fmt.Sprintf("New Payment: Unknown Organization")
 		utils.LogMessage(msg)
-		utils.ErrorJson("Unknown Organization", c)
+		utils.ErrorJson(http.StatusOK, "Unknown Organization", c)
 		return
 	}
 
 	if err = card.Init(request.Organization, types.Regular, true); err != nil {
 		msg := fmt.Sprintf("New Payment: Pelecard Init %s", err.Error())
 		utils.LogMessage(msg)
-		utils.ErrorJson("PeleCard Init: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "PeleCard Init: "+err.Error(), c)
 		return
 	}
 
 	if err, url := card.GetRedirectUrl(types.Register, false); err != nil {
 		msg := fmt.Sprintf("New Payment: Error GetRedirectUrl %s", err.Error())
 		utils.LogMessage(msg)
-		utils.ErrorJson("GetRedirectUrl "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "GetRedirectUrl "+err.Error(), c)
 	} else {
 		utils.OnRedirect(url, "", "success", c)
 	}
@@ -160,14 +160,14 @@ func GoodJ2(c *gin.Context) {
 		m := fmt.Sprintf("Good J2: Pelecard error %s", form.PelecardStatusCode)
 		utils.LogMessage(m)
 		db.SetStatus(form.UserKey, "invalid")
-		utils.ErrorJson("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		utils.ErrorJson(http.StatusBadGateway, "Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
 		return
 	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
 		m := fmt.Sprintf("Good J2: %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("UpdateRequestTemp J2: "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "UpdateRequestTemp J2: "+err.Error(), c)
 		return
 	}
 
@@ -177,7 +177,7 @@ func GoodJ2(c *gin.Context) {
 	if err != nil {
 		m := fmt.Sprintf("Good J2: GetOrganization Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("GetOrganization: "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "GetOrganization: "+err.Error(), c)
 		return
 	}
 
@@ -186,7 +186,7 @@ func GoodJ2(c *gin.Context) {
 	if err := card.Init(org, types.Regular, true); err != nil {
 		m := fmt.Sprintf("Good J2: Approve Init Error %s", err.Error())
 		utils.LogMessage(m)
-		utils.ErrorJson("Approve Init: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "Approve Init: "+err.Error(), c)
 		return
 	}
 
@@ -195,7 +195,7 @@ func GoodJ2(c *gin.Context) {
 		m := fmt.Sprintf("Good J2: GetTransaction Error %s", err.Error())
 		utils.LogMessage(m)
 
-		utils.ErrorJson("GetTransaction: "+err.Error(), c)
+		utils.ErrorJson(http.StatusBadGateway, "GetTransaction: "+err.Error(), c)
 		return
 	}
 
@@ -208,7 +208,7 @@ func GoodJ2(c *gin.Context) {
 		m := fmt.Sprintf("Good J2: Load Request Error %s", err.Error())
 		utils.LogMessage(m)
 
-		utils.ErrorJson("LoadRequest "+err.Error(), c)
+		utils.ErrorJson(http.StatusInternalServerError, "LoadRequest "+err.Error(), c)
 		return
 	}
 

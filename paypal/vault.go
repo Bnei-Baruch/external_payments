@@ -24,7 +24,7 @@ type vaultPaymentSource struct {
 
 type vaultPaypalSource struct {
 	ExperienceContext vaultExperienceContext `json:"experience_context"`
-	Attributes        vaultAttributes       `json:"attributes"`
+	Attributes        vaultAttributes        `json:"attributes"`
 }
 
 type vaultExperienceContext struct {
@@ -42,7 +42,7 @@ type vaultConfig struct {
 }
 
 type vaultOrderResponse struct {
-	ID    string          `json:"id"`
+	ID    string    `json:"id"`
 	Links []pp.Link `json:"links"`
 }
 
