@@ -92,15 +92,11 @@ func Counter(c *gin.Context) {
 	var urls map[string]string
 	json.Unmarshal([]byte(project.Url), &urls)
 	url := "https://neworg.kbb1.com/en/node/1050"
-	fmt.Printf("Default url %s\n", url)
 	if value, ok := urls[language]; ok {
 		url = value
-		fmt.Printf("language %s url %s\n", language, url)
 	} else if value, ok := urls["en"]; ok {
 		url = value
-		fmt.Printf("language en url %s\n", url)
 	}
-	fmt.Printf("url %s\n", url)
 	c.HTML(http.StatusOK, "counter.tmpl", gin.H{
 		"language":     language,
 		"bgcolor":      bgcolor,
