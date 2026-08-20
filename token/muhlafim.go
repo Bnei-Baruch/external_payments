@@ -25,9 +25,14 @@ func Muhlafim(c *gin.Context) {
 		return
 	}
 
+	// The organization selects the Pelecard credentials. It normally arrives on
+	// the key, so an empty value here means the caller authenticated with a key
+	// that carries no organization — INTERNAL_API_TOKEN, most likely. Say that,
+	// rather than blaming a body field the caller is not expected to send.
 	request.Organization = utils.ResolveOrganization(c, request.Organization)
 	if request.Organization == "" {
-		utils.ErrorJson(http.StatusBadRequest, "Organization cannot be blank", c)
+		utils.ErrorJson(http.StatusBadRequest,
+			"no organization: this endpoint needs a client key that carries one, not a shared internal token", c)
 		return
 	}
 	if request.StartDate == "" || request.EndDate == "" {
