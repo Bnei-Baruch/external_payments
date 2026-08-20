@@ -88,3 +88,37 @@ func CreateAPIClient(name, organization, token, notes string) (int64, error) {
 	}
 	return res.LastInsertId()
 }
+
+// APIClientRow is a client as shown by -listkeys. The token is not part of it;
+// only its hash is stored.
+type APIClientRow struct {
+	ID           int64   `db:"id"`
+	Name         string  `db:"name"`
+	Organization string  `db:"organization"`
+	Enabled      bool    `db:"enabled"`
+	CreatedAt    string  `db:"created_at"`
+	LastUsedAt   *string `db:"last_used_at"`
+	Notes        string  `db:"notes"`
+}
+
+// ListAPIClients returns every client, revoked ones included.
+func ListAPIClients() (rows []APIClientRow, err error) {
+	err = db.Select(&rows, `
+		SELECT id, name, COALESCE(organization, '') AS organization, enabled,
+		       created_at, last_used_at, COALESCE(notes, '') AS notes
+		FROM civicrm_bb_ext_api_clients
+		ORDER BY id
+	`)
+	return
+}
+
+// RevokeAPIClient disables a client. The row is kept so the audit trail
+// survives; deleting it would lose who held the key and when it was issued.
+func RevokeAPIClient(id int64) (bool, error) {
+	res, err := db.Exec(`UPDATE civicrm_bb_ext_api_clients SET enabled = 0 WHERE id = ?`, id)
+	if err != nil {
+		return false, err
+	}
+	n, _ := res.RowsAffected()
+	return n > 0, nil
+}
