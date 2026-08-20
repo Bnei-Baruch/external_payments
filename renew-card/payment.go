@@ -19,7 +19,7 @@ import (
 func RenewCard(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			payment.OnError("Bind "+err.Error(), c)
 			return

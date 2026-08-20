@@ -51,7 +51,7 @@ func paypalEnv() string {
 func NewPayment(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil {
+	if err = c.ShouldBindJSON(&request); err != nil {
 		if err = c.ShouldBind(&request); err != nil {
 			utils.LogMessage(fmt.Sprintf("[PayPal] NewPayment bind error: %s", err))
 			utils.ErrorJson("New Bind "+err.Error(), c)

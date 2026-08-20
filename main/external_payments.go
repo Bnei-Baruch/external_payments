@@ -11,6 +11,7 @@ import (
 	"html/template"
 	"log"
 	"os"
+	"strings"
 
 	_ "github.com/gin-contrib/cors"
 	"github.com/gin-contrib/location"
@@ -51,7 +52,9 @@ func main() {
 		defer db.Disconnect()
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.LoggerWithFormatter(accessLogFormatter))
+	r.Use(gin.Recovery())
 	// configure to automatically detect scheme and host
 	// - use http when default scheme cannot be determined
 	// - use localhost:8080 when default host cannot be determined
@@ -175,6 +178,21 @@ func formatAmount(number float64) string {
 	return p.Sprintf("%.0f", number)
 }
 
+// accessLogFormatter matches gin's default line but drops the query string.
+// Callers redirect the payer's browser to /payments/new with Name, Email,
+// Phone, Street and City as query parameters, so the default logger writes a
+// named person's contact details and home address into the journal on every
+// checkout.
+func accessLogFormatter(p gin.LogFormatterParams) string {
+	path := p.Path
+	if i := strings.IndexByte(path, '?'); i >= 0 {
+		path = path[:i]
+	}
+	return fmt.Sprintf("[GIN] %v | %3d | %13v | %15s | %-7s %#v\n",
+		p.TimeStamp.Format("2006/01/02 - 15:04:05"),
+		p.StatusCode, p.Latency, p.ClientIP, p.Method, path)
+}
+
 func CORSMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
@@ -191,4 +209,3 @@ func CORSMiddleware() gin.HandlerFunc {
 		}
 	}
 }
-

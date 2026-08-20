@@ -47,7 +47,7 @@ func ConfirmPayment(c *gin.Context) {
 func NewPayment(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			ErrorJson("New Bind "+err.Error(), c)
 			return
@@ -366,7 +366,7 @@ func Charge(c *gin.Context) {
 	var err error
 
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			m := fmt.Sprintf("Charge: %s", err.Error())
 			logMessage(m)
@@ -454,7 +454,7 @@ func ChargeX(c *gin.Context) {
 	var err error
 
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			m := fmt.Sprintf("Charge: %s", err.Error())
 			logMessage(m)

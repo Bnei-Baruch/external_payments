@@ -18,7 +18,7 @@ import (
 func NewToken(c *gin.Context) {
 	var err error
 	request := types.PaymentRequest{}
-	if err = c.BindJSON(&request); err != nil { // Bind by JSON (post)
+	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
 			utils.ErrorJson("New Bind "+err.Error(), c)
 			return

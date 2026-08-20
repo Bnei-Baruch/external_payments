@@ -21,7 +21,7 @@ import (
 //   - anything else → PayPal vault token (REST Orders API v2)
 func Charge(c *gin.Context) {
 	var request types.PaymentRequest
-	if err := c.BindJSON(&request); err != nil {
+	if err := c.ShouldBindJSON(&request); err != nil {
 		if err = c.ShouldBind(&request); err != nil {
 			utils.ErrorJson("Bind: "+err.Error(), c)
 			return
