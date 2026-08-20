@@ -4,7 +4,8 @@ import (
 	"encoding/json/v2"
 	"fmt"
 	"math"
-		"strings"
+	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -21,7 +22,7 @@ func RenewCard(c *gin.Context) {
 	request := types.PaymentRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			payment.OnError("Bind "+err.Error(), c)
+			payment.OnError(http.StatusBadRequest, "Bind "+err.Error(), c)
 			return
 		}
 	}

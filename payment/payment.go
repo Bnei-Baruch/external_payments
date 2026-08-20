@@ -22,7 +22,7 @@ func ConfirmPayment(c *gin.Context) {
 	request := types.ConfirmRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBindQuery(&request); err != nil { // Bind by Query String (get)
-			OnError("Bind "+err.Error(), c)
+			OnError(http.StatusBadRequest, "Bind "+err.Error(), c)
 			return
 		}
 	}
@@ -42,19 +42,19 @@ func GetTransaction(c *gin.Context) {
 	request := types.GetTransactionRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBindQuery(&request); err != nil { // Bind by Query String (get)
-			OnError("Bind "+err.Error(), c)
+			OnError(http.StatusBadRequest, "Bind "+err.Error(), c)
 			return
 		}
 	}
 	c.Status(http.StatusOK)
 	card := &pelecard.PeleCard{}
 	if err = card.Init(request.Organization, types.Regular, true); err != nil {
-		OnError("Init"+err.Error(), c)
+		OnError(http.StatusBadGateway, "Init"+err.Error(), c)
 		return
 	}
 	var msg map[string]any
 	if err, msg = card.GetTransactionData(request.CreatedAt, request.ApprovalNo); err != nil {
-		OnError("GetTransactionData "+err.Error(), c)
+		OnError(http.StatusBadGateway, "GetTransactionData "+err.Error(), c)
 		return
 	}
 
@@ -68,19 +68,19 @@ func NewPayment(c *gin.Context) {
 	request := types.PaymentRequest{}
 	if err = c.ShouldBindJSON(&request); err != nil { // Bind by JSON (post)
 		if err = c.ShouldBind(&request); err != nil { // Bind by Query String (get)
-			OnError("Bind "+err.Error(), c)
+			OnError(http.StatusBadRequest, "Bind "+err.Error(), c)
 			return
 		}
 	}
 
 	if errFound, errors := validation.ValidateStruct(request); errFound {
-		OnError("validateStruct "+strings.Join(errors, "\n"), c)
+		OnError(http.StatusBadRequest, "validateStruct "+strings.Join(errors, "\n"), c)
 		return
 	}
 
 	// Store request into DB
 	if err = db.StoreRequest(request); err != nil {
-		OnError("StoreRequest "+err.Error(), c)
+		OnError(http.StatusInternalServerError, "StoreRequest "+err.Error(), c)
 		return
 	}
 
@@ -169,17 +169,17 @@ func NewPayment(c *gin.Context) {
 		}
 		card.LogoUrl = "https://www.1family.co.il/wp-content/uploads/2019/06/cropped-Screen-Shot-2019-06-16-at-00.12.07-140x82.png"
 	} else {
-		OnError("Unknown Organization", c)
+		OnError(http.StatusBadRequest, "Unknown Organization", c)
 		return
 	}
 
 	if err = card.Init(request.Organization, types.Regular, true); err != nil {
-		OnError("Init"+err.Error(), c)
+		OnError(http.StatusBadGateway, "Init"+err.Error(), c)
 		return
 	}
 
 	if err, url := card.GetRedirectUrl(types.Charge, true); err != nil {
-		OnError("GetRedirectUrl"+err.Error(), c)
+		OnError(http.StatusBadGateway, "GetRedirectUrl"+err.Error(), c)
 	} else {
 		OnRedirect(url, "", c)
 	}
@@ -208,13 +208,13 @@ func GoodPayment(c *gin.Context) {
 	}
 
 	if form.PelecardStatusCode != "000" {
-		OnError("Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
+		OnError(http.StatusBadGateway, "Pelecard error: "+form.PelecardStatusCode+" "+pelecard.GetMessage(form.PelecardStatusCode), c)
 		db.SetStatus(form.UserKey, "invalid")
 		return
 	}
 
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		OnError("UpdateRequestTemp: "+err.Error(), c)
+		OnError(http.StatusInternalServerError, "UpdateRequestTemp: "+err.Error(), c)
 		return
 	}
 
@@ -222,20 +222,20 @@ func GoodPayment(c *gin.Context) {
 	// civicrm_bb_ext_requests
 	org, err := db.GetOrganization(form.UserKey)
 	if err != nil {
-		OnError("Init"+err.Error(), c)
+		OnError(http.StatusBadGateway, "Init"+err.Error(), c)
 		return
 	}
 
 	// approve params
 	card := &pelecard.PeleCard{}
 	if err := card.Init(org, types.Regular, true); err != nil {
-		OnError("Init"+err.Error(), c)
+		OnError(http.StatusBadGateway, "Init"+err.Error(), c)
 		return
 	}
 
 	var msg map[string]any
 	if err, msg = card.GetTransaction(form.PelecardTransactionId); err != nil {
-		OnError("GetTransaction "+err.Error(), c)
+		OnError(http.StatusBadGateway, "GetTransaction "+err.Error(), c)
 		return
 	}
 
@@ -245,18 +245,18 @@ func GoodPayment(c *gin.Context) {
 	response.UserKey = form.UserKey
 	// update DB
 	if err = db.UpdateRequest(response); err != nil {
-		OnError("UpdateRequest "+err.Error(), c)
+		OnError(http.StatusInternalServerError, "UpdateRequest "+err.Error(), c)
 		return
 	}
 	// real validation
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		OnError("LoadRequest "+err.Error(), c)
+		OnError(http.StatusInternalServerError, "LoadRequest "+err.Error(), c)
 		return
 	}
 
 	if err := card.Init(request.Organization, types.Regular, true); err != nil {
-		OnError("Init "+err.Error(), c)
+		OnError(http.StatusBadGateway, "Init "+err.Error(), c)
 		return
 	}
 	card.ConfirmationKey = form.ConfirmationKey
@@ -265,12 +265,12 @@ func GoodPayment(c *gin.Context) {
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
 		db.SetStatus(form.UserKey, "invalid")
-		OnError("ValidateByUniqueKey "+err.Error(), c)
+		OnError(http.StatusBadGateway, "ValidateByUniqueKey "+err.Error(), c)
 		return
 	}
 	if !valid {
 		db.SetStatus(form.UserKey, "invalid")
-		OnError("Confirmation error ", c)
+		OnError(http.StatusBadGateway, "Confirmation error ", c)
 		return
 	}
 
@@ -286,13 +286,13 @@ func ErrorPayment(c *gin.Context) {
 	form := loadPeleCardForm(c)
 	db.SetStatus(form.UserKey, "error")
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		OnError(err.Error(), c)
+		OnError(http.StatusInternalServerError, err.Error(), c)
 		return
 	}
 
 	var request types.PaymentRequest
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		OnError(err.Error(), c)
+		OnError(http.StatusInternalServerError, err.Error(), c)
 		return
 	}
 	OnRedirect(request.ErrorURL, pelecard.GetMessage(form.PelecardStatusCode), c)
@@ -304,25 +304,29 @@ func CancelPayment(c *gin.Context) {
 	form := loadPeleCardForm(c)
 	db.SetStatus(form.UserKey, "cancel")
 	if err = db.UpdateRequestTemp(form.UserKey, form); err != nil {
-		OnError(err.Error(), c)
+		OnError(http.StatusInternalServerError, err.Error(), c)
 		return
 	}
 
 	var request = types.PaymentRequest{}
 	if err = db.LoadRequest(form.UserKey, &request); err != nil {
-		OnError(err.Error(), c)
+		OnError(http.StatusInternalServerError, err.Error(), c)
 		return
 	}
 	OnRedirect(request.CancelURL, "", c)
 }
 
-// OnError shows the payer a generic failure page. The detail goes to the log
-// only: it has carried a stack trace and, on validation failures, the full list
-// of expected request fields.
-func OnError(err string, c *gin.Context) {
-	utils.LogMessage(fmt.Sprintf("Payment error: %s", err))
+// OnError shows the payer a generic failure page and answers with a status
+// matching the cause: 400 for a malformed request, 502 when Pelecard failed,
+// 500 for our own storage. It previously always answered 200, which made a
+// failed payment indistinguishable from a successful one in the access log.
+//
+// The detail goes to the log only: it has carried a stack trace and, on
+// validation failures, the full list of expected request fields.
+func OnError(status int, err string, c *gin.Context) {
+	utils.LogMessage(fmt.Sprintf("Payment error [%d]: %s", status, err))
 
-	c.Writer.WriteHeader(http.StatusOK)
+	c.Writer.WriteHeader(status)
 	_, _ = c.Writer.Write([]byte(
 		"<html><body><h1 style='color: red;'>Payment error</h1>" +
 			"<p>Something went wrong. Please try again, or contact support.</p>" +
