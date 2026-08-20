@@ -186,6 +186,15 @@ deployment step, not a resting state.
 Management is via the binary; `-h` lists the commands. It deliberately does not
 explain any of the above, since the binary gets copied between hosts.
 
+`civicrm_bb_ext_api_clients` columns beyond the obvious: `prefix` records the
+caller's reference prefix. It is stored but **not yet enforced** — once every
+client has one, a reference that does not start with the client's prefix is a
+caller claiming another site's payment.
+
+Adding a column: `CREATE TABLE IF NOT EXISTS` does nothing to a table that
+already exists, so put an `ALTER TABLE` in `migrations` in `db/db.go` as well.
+Those run on every start and ignore "duplicate column".
+
 Organization resolution supports two generations of a caller at once, because
 WordPress sites update at their own pace:
 

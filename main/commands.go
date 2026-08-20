@@ -21,7 +21,7 @@ const usage = `external_payments
 
 Run with no arguments to start the server.
 
-  -createkey <name> <organization> [notes]   issue a client token
+  -createkey <name> <organization> [prefix] [notes]   issue a client token
   -listkeys                                  list clients
   -revokekey <id>                            disable a client
   -h                                         this text
@@ -72,7 +72,7 @@ var validOrganizations = []string{"ben2", "meshp18"}
 
 func createKey(args []string) {
 	if len(args) < 2 {
-		fmt.Printf("usage: external_payments -createkey <name> <organization> [notes]\n")
+		fmt.Printf("usage: external_payments -createkey <name> <organization> [prefix] [notes]\n")
 		fmt.Printf("organization is one of: %s\n", strings.Join(validOrganizations, ", "))
 		os.Exit(2)
 	}
@@ -84,9 +84,12 @@ func createKey(args []string) {
 		os.Exit(2)
 	}
 
-	var notes string
+	var prefix, notes string
 	if len(args) > 2 {
-		notes = args[2]
+		prefix = args[2]
+	}
+	if len(args) > 3 {
+		notes = args[3]
 	}
 
 	raw := make([]byte, 32)
@@ -95,7 +98,7 @@ func createKey(args []string) {
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
 
-	id, err := db.CreateAPIClient(name, organization, token, notes)
+	id, err := db.CreateAPIClient(name, organization, prefix, token, notes)
 	if err != nil {
 		log.Fatalf("create client: %v", err)
 	}
@@ -103,6 +106,9 @@ func createKey(args []string) {
 	fmt.Printf("id            %d\n", id)
 	fmt.Printf("name          %s\n", name)
 	fmt.Printf("organization  %s\n", organization)
+	if prefix != "" {
+		fmt.Printf("prefix        %s\n", prefix)
+	}
 	fmt.Printf("token         %s\n", token)
 	fmt.Println("\nStore it now — it cannot be read back.")
 	fmt.Println("Restart the service to load it.")
@@ -117,8 +123,8 @@ func listKeys() {
 		fmt.Println("no clients")
 		return
 	}
-	fmt.Printf("%-4s %-22s %-12s %-9s %-20s %s\n",
-		"id", "name", "organization", "state", "created", "last used")
+	fmt.Printf("%-4s %-20s %-12s %-10s %-9s %-20s %s\n",
+		"id", "name", "organization", "prefix", "state", "created", "last used")
 	for _, r := range rows {
 		state := "revoked"
 		if r.Enabled {
@@ -128,8 +134,8 @@ func listKeys() {
 		if r.LastUsedAt != nil {
 			last = *r.LastUsedAt
 		}
-		fmt.Printf("%-4d %-22s %-12s %-9s %-20s %s\n",
-			r.ID, r.Name, r.Organization, state, r.CreatedAt, last)
+		fmt.Printf("%-4d %-20s %-12s %-10s %-9s %-20s %s\n",
+			r.ID, r.Name, r.Organization, r.Prefix, state, r.CreatedAt, last)
 	}
 }
 

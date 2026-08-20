@@ -1,12 +1,13 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
 
 	"github.com/MakeNowJust/heredoc"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 
 	"external_payments/types"
@@ -158,6 +159,7 @@ func initDB() (err error) {
 		name			VARCHAR(255) NOT NULL,
 		token_sha256	CHAR(64) NOT NULL,
 		organization	VARCHAR(255) NOT NULL,
+		prefix			VARCHAR(255),
 		enabled			TINYINT(1) NOT NULL DEFAULT 1,
 		created_at		DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		last_used_at	DATETIME NULL,
@@ -198,7 +200,32 @@ func initDB() (err error) {
 			log.Fatalf("DB tables %d creation error: %v\n", idx, err)
 		}
 	}
+
+	applyMigrations()
 	return
+}
+
+// migrations bring an existing table up to the schema above. CREATE TABLE IF
+// NOT EXISTS does nothing to a table that already exists, so a new column has
+// to be added separately. Each statement must be safe to run on every start.
+var migrations = []string{
+	`ALTER TABLE civicrm_bb_ext_api_clients ADD COLUMN prefix VARCHAR(255)`,
+}
+
+// mysqlDuplicateColumn is returned when the column is already there, which is
+// the normal case on every start after the first.
+const mysqlDuplicateColumn = 1060
+
+func applyMigrations() {
+	for _, stmt := range migrations {
+		if _, err := db.Exec(stmt); err != nil {
+			var me *mysql.MySQLError
+			if errors.As(err, &me) && me.Number == mysqlDuplicateColumn {
+				continue
+			}
+			log.Printf("migration failed (%s): %v", stmt, err)
+		}
+	}
 }
 
 func Connect() (err error) {

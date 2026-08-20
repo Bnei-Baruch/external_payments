@@ -14,7 +14,11 @@ import (
 type APIClient struct {
 	Name         string `db:"name"`
 	Organization string `db:"organization"`
-	TokenSHA256  string `db:"token_sha256"`
+	// Prefix is the caller's reference prefix. Recorded now, not yet enforced:
+	// once every client has one, a reference that does not start with it is a
+	// caller claiming another site's payment.
+	Prefix      string `db:"prefix"`
+	TokenSHA256 string `db:"token_sha256"`
 }
 
 var (
@@ -31,7 +35,7 @@ var (
 func LoadAPIClients() (int, error) {
 	var rows []APIClient
 	err := db.Select(&rows, `
-		SELECT name, organization, token_sha256
+		SELECT name, organization, COALESCE(prefix, '') AS prefix, token_sha256
 		FROM civicrm_bb_ext_api_clients
 		WHERE enabled = 1
 	`)
@@ -78,11 +82,11 @@ func APIClientCount() int {
 
 // CreateAPIClient stores a new client and returns the row id. The caller keeps
 // the token; it cannot be read back afterwards.
-func CreateAPIClient(name, organization, token, notes string) (int64, error) {
+func CreateAPIClient(name, organization, prefix, token, notes string) (int64, error) {
 	res, err := db.Exec(`
-		INSERT INTO civicrm_bb_ext_api_clients (name, token_sha256, organization, notes)
-		VALUES (?, ?, ?, NULLIF(?, ''))
-	`, name, TokenHash(token), organization, notes)
+		INSERT INTO civicrm_bb_ext_api_clients (name, token_sha256, organization, prefix, notes)
+		VALUES (?, ?, ?, NULLIF(?, ''), NULLIF(?, ''))
+	`, name, TokenHash(token), organization, prefix, notes)
 	if err != nil {
 		return 0, fmt.Errorf("insert api client: %w", err)
 	}
@@ -95,6 +99,7 @@ type APIClientRow struct {
 	ID           int64   `db:"id"`
 	Name         string  `db:"name"`
 	Organization string  `db:"organization"`
+	Prefix       string  `db:"prefix"`
 	Enabled      bool    `db:"enabled"`
 	CreatedAt    string  `db:"created_at"`
 	LastUsedAt   *string `db:"last_used_at"`
@@ -104,7 +109,7 @@ type APIClientRow struct {
 // ListAPIClients returns every client, revoked ones included.
 func ListAPIClients() (rows []APIClientRow, err error) {
 	err = db.Select(&rows, `
-		SELECT id, name, organization, enabled,
+		SELECT id, name, organization, COALESCE(prefix, '') AS prefix, enabled,
 		       created_at, last_used_at, COALESCE(notes, '') AS notes
 		FROM civicrm_bb_ext_api_clients
 		ORDER BY id
