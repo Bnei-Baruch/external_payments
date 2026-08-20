@@ -310,6 +310,10 @@ func Charge(c *gin.Context) {
 		}
 	}
 
+	// Before validation: Organization is required, and a caller authenticated
+	// by key does not send it.
+	request.Organization = utils.ResolveOrganization(c, request.Organization)
+
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		m := fmt.Sprintf("Charge: Validation Error: %+v", errors)
 		utils.LogMessage(m)

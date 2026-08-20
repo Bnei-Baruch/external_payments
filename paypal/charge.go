@@ -28,6 +28,10 @@ func Charge(c *gin.Context) {
 			return
 		}
 	}
+	// Before validation: Organization is required, and a caller authenticated
+	// by key does not send it.
+	request.Organization = utils.ResolveOrganization(c, request.Organization)
+
 	if errFound, errors := validation.ValidateStruct(request); errFound {
 		utils.ErrorJson(http.StatusBadRequest, "validateStruct: "+strings.Join(errors, "\n"), c)
 		return

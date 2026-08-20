@@ -186,6 +186,19 @@ deployment step, not a resting state.
 Management is via the binary; `-h` lists the commands. It deliberately does not
 explain any of the above, since the binary gets copied between hosts.
 
+Organization resolution supports two generations of a caller at once, because
+WordPress sites update at their own pace:
+
+| Caller | Sends | Organization taken from |
+|---|---|---|
+| old plugin | `Organization` in body, no token | the body |
+| new plugin | token, no `Organization` | the key |
+| either, misconfigured | both, disagreeing | the key, logged as `ORG MISMATCH` |
+
+`utils.ResolveOrganization` must be called after binding and **before**
+validation — `Organization` is a required field, so a request from the new
+plugin fails validation unless the value is filled in first.
+
 Route status:
 
 | Route | Mode |

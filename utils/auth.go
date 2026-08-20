@@ -95,3 +95,36 @@ func APIClientFor(c *gin.Context) (db.APIClient, bool) {
 	client, ok := v.(db.APIClient)
 	return client, ok
 }
+
+// ResolveOrganization decides which organization a request belongs to, and is
+// how two generations of the WooCommerce plugin coexist.
+//
+//	old plugin  sends Organization in the body, no token
+//	new plugin  sends a token whose key carries the organization, no body field
+//
+// The key wins when there is one, because the caller cannot choose it. The body
+// value is accepted otherwise, so sites that have not taken the plugin update
+// keep working.
+//
+// Call this after binding and before validating: Organization is a required
+// field, so a request from the new plugin fails validation unless the value is
+// filled in first.
+//
+// A caller that sends both and disagrees is reported. That means either an old
+// site that has been issued a key, or a new one still sending a stale setting —
+// worth finding during the transition, not worth rejecting the payment over.
+func ResolveOrganization(c *gin.Context, fromBody string) string {
+	client, ok := APIClientFor(c)
+	if !ok || client.Organization == "" {
+		return fromBody
+	}
+
+	if fromBody != "" && fromBody != client.Organization {
+		LogMessage(fmt.Sprintf(
+			"ORG MISMATCH: client=%q key=%s body=%s — using the key. %s %s ip=%s",
+			client.Name, client.Organization, fromBody,
+			c.Request.Method, c.Request.URL.Path, c.ClientIP()))
+	}
+
+	return client.Organization
+}
