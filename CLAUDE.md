@@ -169,17 +169,31 @@ this order:
    would be bookkeeping without benefit. Rotating it means editing `.env` and
    restarting both this service and every service of ours that calls it.
 
-With neither configured, guarded routes stay **open** and log every caller with
-its IP and user-agent. That is the rollout path: deploy guarded but unprovisioned,
-watch who actually calls, issue their keys, then switch enforcement on by
-inserting the first row. A route that silently stops working is worse than one
-that reports who is still using it — the same reasoning as the retired routes
-answering 410 rather than 404.
+Two middlewares, and the difference matters:
+
+- `utils.RequireAPIClient()` — always enforces. 401 without a valid token,
+  whatever is configured. A route guarded with this is never open.
+- `utils.ObserveAPIClient()` — resolves a token if one is present, lets every
+  request through either way, and logs unauthenticated callers as
+  `AUTH OBSERVE`.
+
+Observe mode is how a route with callers we cannot enumerate gets guarded:
+deploy in observe mode, read the log to find every caller, issue their keys,
+then switch the route to require. Enforcing first takes payments down for
+whoever we forgot. **A route left in observe mode is unprotected** — it is a
+deployment step, not a resting state.
 
 Management is via the binary; `-h` lists the commands. It deliberately does not
 explain any of the above, since the binary gets copied between hosts.
 
-Currently guarded: `POST /payments/transaction`.
+Route status:
+
+| Route | Mode |
+|---|---|
+| `POST /payments/transaction` | require |
+| `POST /token/charge`, `/token/chargex` | observe |
+| `POST /emv/charge` | observe |
+| `POST /paypal/charge` | observe |
 
 ### DB Tables
 

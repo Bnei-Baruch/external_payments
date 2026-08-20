@@ -62,9 +62,9 @@ func main() {
 		case err != nil:
 			log.Printf("api clients: load failed (%v); internal token set: %t", err, internal)
 		case n == 0 && !internal:
-			log.Printf("api clients: none, and no INTERNAL_API_TOKEN — guarded routes are OPEN and logging callers")
+			log.Printf("api clients: none and no internal token — required routes will reject every caller")
 		default:
-			log.Printf("api clients: %d loaded, internal token set: %t — guarded routes enforced", n, internal)
+			log.Printf("api clients: %d loaded, internal token set: %t", n, internal)
 		}
 	}
 
@@ -120,8 +120,11 @@ func router(r *gin.Engine, isProd bool) {
 		// GET retired: a charge over GET is reachable by CSRF, prefetch and link
 		// scanners, and leaks the request into logs and Referer headers.
 		withToken.GET("/charge", utils.Gone)
-		withToken.POST("/charge", token.Charge)
-		withToken.POST("/chargex", token.ChargeX)
+		// Observe, not require: VH and the WooCommerce plugin call these and
+		// have not been issued keys yet. Read AUTH OBSERVE lines to find every
+		// caller, issue their keys, then switch to RequireAPIClient.
+		withToken.POST("/charge", utils.ObserveAPIClient(), token.Charge)
+		withToken.POST("/chargex", utils.ObserveAPIClient(), token.ChargeX)
 		withToken.POST("/refund", token.Refund)
 		// Retired: unauthenticated card-validity probes. Routed to Gone so any
 		// remaining caller is identified in the log; delete after 2026-09-16.
@@ -141,7 +144,7 @@ func router(r *gin.Engine, isProd bool) {
 		withEmv.POST("/confirm", emv.ConfirmPayment)
 		// GET retired — see /token/charge above.
 		withEmv.GET("/charge", utils.Gone)
-		withEmv.POST("/charge", emv.Charge)
+		withEmv.POST("/charge", utils.ObserveAPIClient(), emv.Charge)
 		withEmv.GET("/new_token", emv.NewToken)
 		withEmv.POST("/new_token", emv.NewToken)
 		withEmv.POST("/good_token", emv.GoodToken)
@@ -173,7 +176,7 @@ func router(r *gin.Engine, isProd bool) {
 		withPaypal.GET("/cancel", paypalhandler.CancelPayment)
 		withPaypal.GET("/confirm", paypalhandler.Confirm)
 		withPaypal.POST("/confirm", paypalhandler.Confirm)
-		withPaypal.POST("/charge", paypalhandler.Charge)
+		withPaypal.POST("/charge", utils.ObserveAPIClient(), paypalhandler.Charge)
 	}
 
 	projects := r.Group("/projects/:language/:project_name")
