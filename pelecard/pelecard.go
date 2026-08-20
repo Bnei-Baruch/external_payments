@@ -10,8 +10,6 @@ import (
 	"os"
 	time "time"
 
-	"github.com/gin-gonic/gin"
-
 	"external_payments/types"
 )
 
@@ -118,8 +116,6 @@ func (p *PeleCard) GetTransDataByTrxId(trxId string) (err error, msg map[string]
 	}
 	params, _ := json.Marshal(r)
 	url := p.Service + "/GetTransDataByTrxId"
-	errLogger := gin.DefaultErrorWriter
-	_, _ = errLogger.Write([]byte(fmt.Sprintf("----------> SERVICE: %s\n", url)))
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
@@ -154,8 +150,6 @@ func (p *PeleCard) GetTransaction(transactionId string) (err error, msg map[stri
 	}
 	params, _ := json.Marshal(req)
 	url := p.Url + "/GetTransaction"
-	errLogger := gin.DefaultErrorWriter
-	_, _ = errLogger.Write([]byte(fmt.Sprintf("----------> CONNECT: %s\n", url)))
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
@@ -318,11 +312,6 @@ func (p *PeleCard) services(action string, data *service) (err error, result map
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
-	errLogger := gin.DefaultErrorWriter
-	var msg string
-	msg = fmt.Sprintf("----------> SERVICE: %s\n", url)
-	_, _ = errLogger.Write([]byte(msg))
-
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
@@ -350,11 +339,6 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	params, _ := json.Marshal(*data)
 	url := p.Service + action
 
-	errLogger := gin.DefaultErrorWriter
-	var msg string
-	msg = fmt.Sprintf("----------> SERVICE: %s\n", url)
-	_, _ = errLogger.Write([]byte(msg))
-
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
@@ -381,9 +365,6 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 func (p *PeleCard) connect(action string) (err error, result map[string]any) {
 	params, _ := json.Marshal(*p)
 	url := p.Url + action
-	errLogger := gin.DefaultErrorWriter
-	m := fmt.Sprintf("----------> CONNECT: %s\n", url)
-	_, _ = errLogger.Write([]byte(m))
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
@@ -424,9 +405,6 @@ func (p *PeleCard) connect(action string) (err error, result map[string]any) {
 func (p *PeleCard) connectArr(action string) (err error, result []map[string]any) {
 	params, _ := json.Marshal(*p)
 	url := p.Url + action
-	errLogger := gin.DefaultErrorWriter
-	m := fmt.Sprintf("----------> CONNECT: %s\n", url)
-	_, _ = errLogger.Write([]byte(m))
 	resp, err := pelecardClient.Post(url, "application/json", bytes.NewBuffer(params))
 	if err != nil {
 		return
