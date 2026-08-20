@@ -1,4 +1,4 @@
-GO_FILES := $(shell find . -name '*.go' -not -path './vendor/*')
+GO_FILES := $(shell find . -name '*.go' -not -path './vendor/*') go.mod go.sum
 
 .PHONY: build test
 
