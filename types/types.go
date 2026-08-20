@@ -101,6 +101,25 @@ type GetTransactionRequest struct {
 	ApprovalNo   string `json:"approval"`
 }
 
+// MuhlafimRequest asks for replacement-card entries in a date window. Dates are
+// in Pelecard's own format, "DD/MM/YYYY HH:MM". The terminal is not a parameter:
+// callers charge recurring tokens through this service, so the terminal those
+// tokens live on is ours to know, not theirs to choose.
+type MuhlafimRequest struct {
+	Organization string `json:"Organization"`
+	StartDate    string `json:"StartDate"`
+	EndDate      string `json:"EndDate"`
+}
+
+// MuhlafimEntry is one card replacement. Field names match Pelecard's, since
+// that is what the previous caller of GetTerminalMuhlafim already parsed.
+type MuhlafimEntry struct {
+	Token             string `json:"Token"`
+	ActionDescription string `json:"ActionDescription"`
+	NewCardNumber     string `json:"NewCardNumber"`
+	NewExpirationDate string `json:"NewExpirationDate"`
+}
+
 type PaymentResponse struct {
 	UserKey                  string `db:"user_key" url:"user_key"`
 	TransactionId            string `db:"transaction_id" url:"transaction_id"`

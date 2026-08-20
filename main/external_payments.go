@@ -126,6 +126,9 @@ func router(r *gin.Engine, isProd bool) {
 		withToken.POST("/charge", utils.ObserveAPIClient(), token.Charge)
 		withToken.POST("/chargex", utils.ObserveAPIClient(), token.ChargeX)
 		withToken.POST("/refund", token.Refund)
+		// New endpoint with no legacy callers, so it skips the observe phase
+		// entirely: the caller arrives already holding a key.
+		withToken.POST("/muhlafim", utils.RequireAPIClient(), token.Muhlafim)
 		// Retired: unauthenticated card-validity probes. Routed to Gone so any
 		// remaining caller is identified in the log; delete after 2026-09-16.
 		withToken.POST("/authorize", utils.Gone)

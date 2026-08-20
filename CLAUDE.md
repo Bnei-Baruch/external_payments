@@ -150,7 +150,14 @@ Key facts:
 - `/paypal/good` - Return after approval; captures order, stores result, redirects to GoodURL
 - `/paypal/error`, `/paypal/cancel` - Callbacks; redirect to ErrorURL/CancelURL
 
-**Token-based:** `/token/charge`, `/token/refund`
+**Token-based:** `/token/charge`, `/token/refund`, `/token/muhlafim`
+
+`/token/muhlafim` returns Pelecard's card replacements for a date window, keyed
+by the token being replaced (`{"StartDate": "DD/MM/YYYY HH:MM", "EndDate": ...}`).
+The terminal is not a parameter: replacements only mean anything for the
+terminal the recurring tokens sit on, which is `PELECARD_RECURR_TERMINAL` — the
+one `/token/charge` charges. Callers therefore do not need Pelecard credentials
+to ask, which is the point of it being here.
 
 **Other:** `/payments/new`, `/payments/confirm`, `/renew/renew-card`, `/hmarket/*`, `/projects/:language/:project_name/counter`
 
@@ -220,6 +227,11 @@ Route status:
 | `POST /token/charge`, `/token/chargex` | observe |
 | `POST /emv/charge` | observe |
 | `POST /paypal/charge` | observe |
+| `POST /token/muhlafim` | require |
+
+`/token/muhlafim` skips the observe phase because it is new: it has no legacy
+callers to enumerate, and its first caller arrives already holding a key.
+Observe mode exists for routes that predate authentication, not for new ones.
 
 ### DB Tables
 

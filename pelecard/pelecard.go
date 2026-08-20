@@ -206,6 +206,41 @@ func (p *PeleCard) GetTransactionData(createDate string, approvalNo string) (err
 	return fmt.Errorf("unable to find transaction around %s with approval %s", createDate, approvalNo), nil
 }
 
+// FetchMuhlafim returns the card replacements Pelecard recorded for this
+// terminal in the given window, keyed by the token being replaced. Dates are
+// Pelecard's "DD/MM/YYYY HH:MM".
+//
+// Entries without a token are dropped: they carry no card to act on.
+func (p *PeleCard) FetchMuhlafim(startDate string, endDate string) (err error, result map[string]types.MuhlafimEntry) {
+	s := &service{
+		TerminalNumber: p.Terminal,
+		User:           p.User,
+		Password:       p.Password,
+		StartDate:      startDate,
+		EndDate:        endDate,
+	}
+
+	var data []any
+	if err, data = p.servicesArr("/GetTerminalMuhlafim", s); err != nil {
+		return err, nil
+	}
+
+	body, _ := json.Marshal(data)
+	var entries []types.MuhlafimEntry
+	if err = json.Unmarshal(body, &entries); err != nil {
+		return fmt.Errorf("muhlafim decode: %w", err), nil
+	}
+
+	result = make(map[string]types.MuhlafimEntry, len(entries))
+	for _, entry := range entries {
+		if entry.Token != "" {
+			result[entry.Token] = entry
+		}
+	}
+
+	return nil, result
+}
+
 func (p *PeleCard) GetRedirectUrl(actionType types.ActionType, requireCVV bool) (err error, url string) {
 	p.ActionType = string(actionType)
 	if requireCVV {
@@ -349,7 +384,9 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
-			result = body["ResultData"].([]any)
+			// Comma-ok: a window with no results comes back as null, and a
+			// bare assertion would panic. An empty muhlafim window is normal.
+			result, _ = body["ResultData"].([]any)
 		} else {
 			if msg, ok := body["ErrorMessage"]; ok {
 				err = fmt.Errorf("%s: %s", status, msg)
