@@ -154,6 +154,33 @@ Key facts:
 
 **Other:** `/payments/new`, `/payments/confirm`, `/renew/renew-card`, `/hmarket/*`, `/projects/:language/:project_name/counter`
 
+### API client authentication
+
+Guarded routes require `Authorization: Bearer <token>`. Two sources, checked in
+this order:
+
+1. **`civicrm_bb_ext_api_clients`** — third-party callers (WooCommerce sites,
+   VH). The row carries an `organization`, which is how the caller stops being
+   able to choose it in the request body. Loaded once at startup, so the request
+   path does no database work; a new or revoked key therefore needs a restart.
+   Only the SHA-256 of the token is stored.
+2. **`INTERNAL_API_TOKEN`** — a single shared secret for our own services.
+   4priority uses it. They have no organization of their own, so a row each
+   would be bookkeeping without benefit. Rotating it means editing `.env` and
+   restarting both this service and every service of ours that calls it.
+
+With neither configured, guarded routes stay **open** and log every caller with
+its IP and user-agent. That is the rollout path: deploy guarded but unprovisioned,
+watch who actually calls, issue their keys, then switch enforcement on by
+inserting the first row. A route that silently stops working is worse than one
+that reports who is still using it — the same reasoning as the retired routes
+answering 410 rather than 404.
+
+Management is via the binary; `-h` lists the commands. It deliberately does not
+explain any of the above, since the binary gets copied between hosts.
+
+Currently guarded: `POST /payments/transaction`.
+
 ### DB Tables
 
 - `civicrm_bb_ext_requests` — one row per payment attempt; tracks status/pstatus/paypal_order_id/paypal_env

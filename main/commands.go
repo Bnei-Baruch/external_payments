@@ -11,57 +11,23 @@ import (
 	"external_payments/db"
 )
 
-const usage = `external_payments — payment gateway
+// usage is deliberately thin. It says what an operator has to type and
+// nothing about how authentication is configured or what happens when it
+// is not — that belongs in the repository, not in a binary that gets
+// copied between hosts.
+const usage = `external_payments
 
 Run with no arguments to start the server.
 
-API tokens
-  Callers of guarded routes present:  Authorization: Bearer <token>
+  -createkey <name> [organization] [notes]   issue a client token
+  -listkeys                                  list clients
+  -revokekey <id>                            disable a client
+  -h                                         this text
 
-  Two kinds exist:
+A token is shown once, when issued, and cannot be read back.
+Changes take effect on restart.
 
-    Our own services (4priority, and anything else we deploy) share the
-    single INTERNAL_API_TOKEN from .env. They have no organization of
-    their own, so a row each would be bookkeeping without benefit.
-
-    Third-party callers (WooCommerce sites, VH) get a row in
-    civicrm_bb_ext_api_clients. The row carries the organization, so the
-    caller no longer chooses it in the request body.
-
-  Only the SHA-256 of a token is stored. A token that is lost cannot be
-  read back — issue a new one and revoke the old.
-
-Commands
-  -createkey <name> [organization] [notes]
-        Mint a token and print it once. Store it immediately.
-        e.g.  ./external_payments -createkey 1family-woo meshp18 "wp plugin"
-
-  -listkeys
-        Show every client, revoked included. Never shows tokens.
-
-  -revokekey <id>
-        Disable a client. The row is kept so you keep the audit trail of
-        who held the key and when it was issued.
-
-  -h, -help
-        This text.
-
-After any change
-  Clients are loaded once at startup, so the request path does no
-  database work. A new or revoked key takes effect on restart:
-
-      sudo systemctl restart external-payments
-
-  The startup line reports what is active, e.g.
-      api clients: 3 loaded, internal token set: true — guarded routes enforced
-
-  With no clients and no INTERNAL_API_TOKEN, guarded routes stay OPEN and
-  log every caller. That is deliberate: it lets you see who is really
-  calling before you switch enforcement on.
-
-Rotating INTERNAL_API_TOKEN
-  Edit .env, then restart both this service and any of ours that call it
-  (4priority reads the same variable).
+See the repository for how clients are configured.
 `
 
 // runCommand handles the CLI. Anything that touches the table connects to the
@@ -127,8 +93,8 @@ func createKey(args []string) {
 		fmt.Printf("organization  %s\n", organization)
 	}
 	fmt.Printf("token         %s\n", token)
-	fmt.Println("\nStore it now — only the hash is kept.")
-	fmt.Println("Restart the service to load it: sudo systemctl restart external-payments")
+	fmt.Println("\nStore it now — it cannot be read back.")
+	fmt.Println("Restart the service to load it.")
 }
 
 func listKeys() {
@@ -137,8 +103,7 @@ func listKeys() {
 		log.Fatalf("list clients: %v", err)
 	}
 	if len(rows) == 0 {
-		fmt.Println("no clients. Guarded routes fall back to INTERNAL_API_TOKEN,")
-		fmt.Println("and stay open if that is unset too.")
+		fmt.Println("no clients")
 		return
 	}
 	fmt.Printf("%-4s %-22s %-12s %-9s %-20s %s\n",
@@ -175,5 +140,5 @@ func revokeKey(args []string) {
 		os.Exit(1)
 	}
 	fmt.Printf("client %d revoked\n", id)
-	fmt.Println("Takes effect on restart: sudo systemctl restart external-payments")
+	fmt.Println("Takes effect on restart.")
 }
