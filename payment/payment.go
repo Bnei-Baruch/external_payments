@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"net/http"
-		"runtime/debug"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -262,7 +261,7 @@ func GoodPayment(c *gin.Context) {
 	}
 	card.ConfirmationKey = form.ConfirmationKey
 	card.UserKey = request.UserKey
-	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price * 100)))
+	card.TotalX100 = fmt.Sprintf("%d", int(math.Round(request.Price*100)))
 	var valid bool
 	if valid, err = card.ValidateByUniqueKey(); err != nil {
 		db.SetStatus(form.UserKey, "invalid")
@@ -317,13 +316,17 @@ func CancelPayment(c *gin.Context) {
 	OnRedirect(request.CancelURL, "", c)
 }
 
+// OnError shows the payer a generic failure page. The detail goes to the log
+// only: it has carried a stack trace and, on validation failures, the full list
+// of expected request fields.
 func OnError(err string, c *gin.Context) {
+	utils.LogMessage(fmt.Sprintf("Payment error: %s", err))
+
 	c.Writer.WriteHeader(http.StatusOK)
-	_, _ = c.Writer.Write([]byte("<html><body><h1 style='color: red;'>Error <code>"))
-	_, _ = c.Writer.Write([]byte(err))
-	_, _ = c.Writer.Write([]byte("</code></h1><br><pre>"))
-	_, _ = c.Writer.Write(debug.Stack())
-	_, _ = c.Writer.Write([]byte("</pre></body></html>"))
+	_, _ = c.Writer.Write([]byte(
+		"<html><body><h1 style='color: red;'>Payment error</h1>" +
+			"<p>Something went wrong. Please try again, or contact support.</p>" +
+			"</body></html>"))
 }
 
 func OnRedirect(url string, msg string, c *gin.Context) {
