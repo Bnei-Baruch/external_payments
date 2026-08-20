@@ -25,6 +25,18 @@ func (p PaymentRequest) String() string {
 		last4(p.Token))
 }
 
+// String reports the fields needed to identify a payment in the log. The card
+// number arrives from Pelecard already masked to first-six/last-four, which is
+// what makes a charge recognisable — the Pelecard token is unrelated to the
+// card and its last four digits match nothing a person would know.
+func (p PaymentResponse) String() string {
+	return fmt.Sprintf("{UserKey:%s ParamX:%s Card:%s %s TransactionId:%s "+
+		"Pelecard:%s DebitCode:%s Total:%s Payments:%s}",
+		p.UserKey, p.AdditionalDetailsParamX, p.CreditCardNumber,
+		p.CreditCardBrand, p.TransactionId, p.TransactionPelecardId,
+		p.DebitCode, p.DebitTotal, p.TotalPayments)
+}
+
 // String redacts the token, confirmation key and approval number from the
 // gateway callback form.
 func (p PeleCardResponse) String() string {

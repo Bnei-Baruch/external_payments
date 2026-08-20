@@ -431,6 +431,7 @@ func Charge(c *gin.Context) {
 	body, _ := json.Marshal(msg)
 	_ = json.Unmarshal(body, &response)
 	response.UserKey = request.UserKey
+	logMessage(fmt.Sprintf("Charge OK: %+v", response))
 	// update DB
 	if err = db.UpdateRequest(response); err != nil {
 		m := fmt.Sprintf("Charge: UpdateRequest %s", err.Error())
@@ -518,6 +519,7 @@ func ChargeX(c *gin.Context) {
 	body, _ := json.Marshal(msg)
 	_ = json.Unmarshal(body, &response)
 	response.UserKey = request.UserKey
+	logMessage(fmt.Sprintf("Charge OK: %+v", response))
 	// update DB
 	if err = db.UpdateRequest(response); err != nil {
 		m := fmt.Sprintf("Charge: UpdateRequest %s", err.Error())
