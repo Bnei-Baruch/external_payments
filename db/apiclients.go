@@ -14,9 +14,10 @@ import (
 type APIClient struct {
 	Name         string `db:"name"`
 	Organization string `db:"organization"`
-	// Prefix is the caller's reference prefix. Recorded now, not yet enforced:
-	// once every client has one, a reference that does not start with it is a
-	// caller claiming another site's payment.
+	// Prefix is the caller's reference prefix, required on every client.
+	// Recorded now, not yet enforced: once every caller has a key, a reference
+	// that does not start with the client's prefix is one site claiming
+	// another's payment.
 	Prefix      string `db:"prefix"`
 	TokenSHA256 string `db:"token_sha256"`
 }
@@ -35,7 +36,7 @@ var (
 func LoadAPIClients() (int, error) {
 	var rows []APIClient
 	err := db.Select(&rows, `
-		SELECT name, organization, COALESCE(prefix, '') AS prefix, token_sha256
+		SELECT name, organization, prefix, token_sha256
 		FROM civicrm_bb_ext_api_clients
 		WHERE enabled = 1
 	`)
@@ -85,7 +86,7 @@ func APIClientCount() int {
 func CreateAPIClient(name, organization, prefix, token, notes string) (int64, error) {
 	res, err := db.Exec(`
 		INSERT INTO civicrm_bb_ext_api_clients (name, token_sha256, organization, prefix, notes)
-		VALUES (?, ?, ?, NULLIF(?, ''), NULLIF(?, ''))
+		VALUES (?, ?, ?, ?, NULLIF(?, ''))
 	`, name, TokenHash(token), organization, prefix, notes)
 	if err != nil {
 		return 0, fmt.Errorf("insert api client: %w", err)
@@ -109,7 +110,7 @@ type APIClientRow struct {
 // ListAPIClients returns every client, revoked ones included.
 func ListAPIClients() (rows []APIClientRow, err error) {
 	err = db.Select(&rows, `
-		SELECT id, name, organization, COALESCE(prefix, '') AS prefix, enabled,
+		SELECT id, name, organization, prefix, enabled,
 		       created_at, last_used_at, COALESCE(notes, '') AS notes
 		FROM civicrm_bb_ext_api_clients
 		ORDER BY id

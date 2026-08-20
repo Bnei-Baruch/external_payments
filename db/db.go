@@ -159,7 +159,7 @@ func initDB() (err error) {
 		name			VARCHAR(255) NOT NULL,
 		token_sha256	CHAR(64) NOT NULL,
 		organization	VARCHAR(255) NOT NULL,
-		prefix			VARCHAR(255),
+		prefix			VARCHAR(255) NOT NULL,
 		enabled			TINYINT(1) NOT NULL DEFAULT 1,
 		created_at		DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		last_used_at	DATETIME NULL,
@@ -209,7 +209,8 @@ func initDB() (err error) {
 // NOT EXISTS does nothing to a table that already exists, so a new column has
 // to be added separately. Each statement must be safe to run on every start.
 var migrations = []string{
-	`ALTER TABLE civicrm_bb_ext_api_clients ADD COLUMN prefix VARCHAR(255)`,
+	`ALTER TABLE civicrm_bb_ext_api_clients ADD COLUMN prefix VARCHAR(255) NOT NULL`,
+	`ALTER TABLE civicrm_bb_ext_api_clients MODIFY prefix VARCHAR(255) NOT NULL`,
 }
 
 // mysqlDuplicateColumn is returned when the column is already there, which is

@@ -187,9 +187,13 @@ Management is via the binary; `-h` lists the commands. It deliberately does not
 explain any of the above, since the binary gets copied between hosts.
 
 `civicrm_bb_ext_api_clients` columns beyond the obvious: `prefix` records the
-caller's reference prefix. It is stored but **not yet enforced** — once every
-client has one, a reference that does not start with the client's prefix is a
-caller claiming another site's payment.
+caller's reference prefix. It is required on every client — `-createkey` will
+not mint a key without one — but **not yet enforced** on the request path. Once
+every caller has a key, a reference that does not start with the client's
+prefix is one site claiming another's payment.
+
+The plugin's own "Prefix for order reference" setting is still optional, so a
+site that has never set one has to pick a prefix before it can be issued a key.
 
 Adding a column: `CREATE TABLE IF NOT EXISTS` does nothing to a table that
 already exists, so put an `ALTER TABLE` in `migrations` in `db/db.go` as well.

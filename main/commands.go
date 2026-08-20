@@ -21,10 +21,14 @@ const usage = `external_payments
 
 Run with no arguments to start the server.
 
-  -createkey <name> <organization> [prefix] [notes]   issue a client token
-  -listkeys                                  list clients
-  -revokekey <id>                            disable a client
-  -h                                         this text
+  -createkey <name> <organization> <prefix> [notes]
+        issue a client token
+  -listkeys
+        list clients
+  -revokekey <id>
+        disable a client
+  -h
+        this text
 
 A token is shown once, when issued, and cannot be read back.
 Changes take effect on restart.
@@ -71,12 +75,18 @@ func withDB(fn func()) {
 var validOrganizations = []string{"ben2", "meshp18"}
 
 func createKey(args []string) {
-	if len(args) < 2 {
-		fmt.Printf("usage: external_payments -createkey <name> <organization> [prefix] [notes]\n")
+	if len(args) < 3 {
+		fmt.Printf("usage: external_payments -createkey <name> <organization> <prefix> [notes]\n")
 		fmt.Printf("organization is one of: %s\n", strings.Join(validOrganizations, ", "))
+		fmt.Printf("prefix is the caller's reference prefix, e.g. 1fam\n")
 		os.Exit(2)
 	}
-	name, organization := args[0], args[1]
+	name, organization, prefix := args[0], args[1], args[2]
+
+	if strings.TrimSpace(prefix) == "" {
+		fmt.Println("prefix cannot be blank")
+		os.Exit(2)
+	}
 
 	if !slices.Contains(validOrganizations, organization) {
 		fmt.Printf("unknown organization %q — expected one of: %s\n",
@@ -84,10 +94,7 @@ func createKey(args []string) {
 		os.Exit(2)
 	}
 
-	var prefix, notes string
-	if len(args) > 2 {
-		prefix = args[2]
-	}
+	var notes string
 	if len(args) > 3 {
 		notes = args[3]
 	}
@@ -106,9 +113,7 @@ func createKey(args []string) {
 	fmt.Printf("id            %d\n", id)
 	fmt.Printf("name          %s\n", name)
 	fmt.Printf("organization  %s\n", organization)
-	if prefix != "" {
-		fmt.Printf("prefix        %s\n", prefix)
-	}
+	fmt.Printf("prefix        %s\n", prefix)
 	fmt.Printf("token         %s\n", token)
 	fmt.Println("\nStore it now — it cannot be read back.")
 	fmt.Println("Restart the service to load it.")
