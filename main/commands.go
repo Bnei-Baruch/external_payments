@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 
 	"external_payments/db"
 )
@@ -19,7 +21,7 @@ const usage = `external_payments
 
 Run with no arguments to start the server.
 
-  -createkey <name> [organization] [notes]   issue a client token
+  -createkey <name> <organization> [notes]   issue a client token
   -listkeys                                  list clients
   -revokekey <id>                            disable a client
   -h                                         this text
@@ -63,15 +65,26 @@ func withDB(fn func()) {
 
 // createKey mints a client token, prints it once and exits. The token is not
 // recoverable afterwards — only its hash is stored.
+// validOrganizations mirrors the values= tag on PaymentRequest.Organization in
+// types/types.go. A key scoped to anything else could never charge, so it is
+// caught here rather than discovered on the first payment.
+var validOrganizations = []string{"ben2", "meshp18"}
+
 func createKey(args []string) {
-	if len(args) < 1 {
-		fmt.Println("usage: external_payments -createkey <name> [organization] [notes]")
+	if len(args) < 2 {
+		fmt.Printf("usage: external_payments -createkey <name> <organization> [notes]\n")
+		fmt.Printf("organization is one of: %s\n", strings.Join(validOrganizations, ", "))
 		os.Exit(2)
 	}
-	var organization, notes string
-	if len(args) > 1 {
-		organization = args[1]
+	name, organization := args[0], args[1]
+
+	if !slices.Contains(validOrganizations, organization) {
+		fmt.Printf("unknown organization %q — expected one of: %s\n",
+			organization, strings.Join(validOrganizations, ", "))
+		os.Exit(2)
 	}
+
+	var notes string
 	if len(args) > 2 {
 		notes = args[2]
 	}
@@ -82,16 +95,14 @@ func createKey(args []string) {
 	}
 	token := base64.RawURLEncoding.EncodeToString(raw)
 
-	id, err := db.CreateAPIClient(args[0], organization, token, notes)
+	id, err := db.CreateAPIClient(name, organization, token, notes)
 	if err != nil {
 		log.Fatalf("create client: %v", err)
 	}
 
 	fmt.Printf("id            %d\n", id)
-	fmt.Printf("name          %s\n", args[0])
-	if organization != "" {
-		fmt.Printf("organization  %s\n", organization)
-	}
+	fmt.Printf("name          %s\n", name)
+	fmt.Printf("organization  %s\n", organization)
 	fmt.Printf("token         %s\n", token)
 	fmt.Println("\nStore it now — it cannot be read back.")
 	fmt.Println("Restart the service to load it.")

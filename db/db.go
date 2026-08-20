@@ -157,7 +157,7 @@ func initDB() (err error) {
 		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
 		name			VARCHAR(255) NOT NULL,
 		token_sha256	CHAR(64) NOT NULL,
-		organization	VARCHAR(255),
+		organization	VARCHAR(255) NOT NULL,
 		enabled			TINYINT(1) NOT NULL DEFAULT 1,
 		created_at		DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 		last_used_at	DATETIME NULL,

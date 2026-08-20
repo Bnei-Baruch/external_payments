@@ -31,7 +31,7 @@ var (
 func LoadAPIClients() (int, error) {
 	var rows []APIClient
 	err := db.Select(&rows, `
-		SELECT name, COALESCE(organization, '') AS organization, token_sha256
+		SELECT name, organization, token_sha256
 		FROM civicrm_bb_ext_api_clients
 		WHERE enabled = 1
 	`)
@@ -81,7 +81,7 @@ func APIClientCount() int {
 func CreateAPIClient(name, organization, token, notes string) (int64, error) {
 	res, err := db.Exec(`
 		INSERT INTO civicrm_bb_ext_api_clients (name, token_sha256, organization, notes)
-		VALUES (?, ?, NULLIF(?, ''), NULLIF(?, ''))
+		VALUES (?, ?, ?, NULLIF(?, ''))
 	`, name, TokenHash(token), organization, notes)
 	if err != nil {
 		return 0, fmt.Errorf("insert api client: %w", err)
@@ -104,7 +104,7 @@ type APIClientRow struct {
 // ListAPIClients returns every client, revoked ones included.
 func ListAPIClients() (rows []APIClientRow, err error) {
 	err = db.Select(&rows, `
-		SELECT id, name, COALESCE(organization, '') AS organization, enabled,
+		SELECT id, name, organization, enabled,
 		       created_at, last_used_at, COALESCE(notes, '') AS notes
 		FROM civicrm_bb_ext_api_clients
 		ORDER BY id
