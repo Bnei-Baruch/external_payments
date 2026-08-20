@@ -3,6 +3,7 @@ package pelecard
 import (
 	"bytes"
 	"encoding/json/v2"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +13,13 @@ import (
 
 	"external_payments/types"
 )
+
+// ErrNoData is Pelecard's status 904. It reports "no rows matched" rather than
+// returning an empty list, so on its own it is not a failure — only the caller
+// knows whether an empty result is expected.
+var ErrNoData = errors.New("pelecard: data does not exist")
+
+const statusNoData = "904"
 
 var pelecardClient = &http.Client{
 	Timeout: 30 * time.Second,
@@ -222,6 +230,13 @@ func (p *PeleCard) FetchMuhlafim(startDate string, endDate string) (err error, r
 
 	var data []any
 	if err, data = p.servicesArr("/GetTerminalMuhlafim", s); err != nil {
+		// A window with no card replacements is an ordinary answer, not a
+		// failure. Pelecard reports it as 904, and the caller that used to make
+		// this call directly never looked at the status at all — it just saw an
+		// empty list. Surfacing an error here would fail a quiet billing month.
+		if errors.Is(err, ErrNoData) {
+			return nil, map[string]types.MuhlafimEntry{}
+		}
 		return err, nil
 	}
 
@@ -384,9 +399,11 @@ func (p *PeleCard) servicesArr(action string, data *service) (err error, result 
 	if status, ok := body["StatusCode"]; ok {
 		if status == "000" {
 			err = nil
-			// Comma-ok: a window with no results comes back as null, and a
-			// bare assertion would panic. An empty muhlafim window is normal.
+			// Comma-ok rather than a bare assertion: ResultData can come back
+			// null, which would panic.
 			result, _ = body["ResultData"].([]any)
+		} else if status == statusNoData {
+			err = ErrNoData
 		} else {
 			if msg, ok := body["ErrorMessage"]; ok {
 				err = fmt.Errorf("%s: %s", status, msg)

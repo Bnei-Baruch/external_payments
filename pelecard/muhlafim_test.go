@@ -69,9 +69,30 @@ func TestFetchMuhlafimDropsEntriesWithoutToken(t *testing.T) {
 	}
 }
 
-// A window with no replacements is the normal case, and Pelecard reports it as
-// a null ResultData. This used to panic on a bare type assertion.
+// How Pelecard actually reports a window with no replacements: HTTP 200 with
+// status 904. It is an ordinary answer, not a failure — the caller that used to
+// make this call directly never checked the status and simply saw an empty
+// list, so returning an error here would fail a quiet billing month.
 func TestFetchMuhlafimEmptyWindow(t *testing.T) {
+	card, done := muhlafimCard(t, func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"StatusCode":"904","ErrorMessage":"Data does not exist"}`))
+	})
+	defer done()
+
+	err, entries := card.FetchMuhlafim("01/01/2020 00:00", "01/01/2020 00:01")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if entries == nil {
+		t.Fatal("want an empty map, got nil")
+	}
+	if len(entries) != 0 {
+		t.Errorf("want no entries, got %v", entries)
+	}
+}
+
+// A null ResultData under status 000 would panic on a bare type assertion.
+func TestFetchMuhlafimNullResultData(t *testing.T) {
 	card, done := muhlafimCard(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"StatusCode":"000","ResultData":null}`))
 	})
