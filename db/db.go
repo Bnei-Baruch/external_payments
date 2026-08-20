@@ -153,6 +153,19 @@ func initDB() (err error) {
 		heredoc.Doc(`
 	ALTER TABLE civicrm_bb_ext_requests ADD COLUMN IF NOT EXISTS tax_id VARCHAR(20) NOT NULL DEFAULT '';`),
 		heredoc.Doc(`
+	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_api_clients (
+		id           	BIGINT PRIMARY KEY AUTO_INCREMENT,
+		name			VARCHAR(255) NOT NULL,
+		token_sha256	CHAR(64) NOT NULL,
+		organization	VARCHAR(255),
+		enabled			TINYINT(1) NOT NULL DEFAULT 1,
+		created_at		DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		last_used_at	DATETIME NULL,
+		last_used_ip	VARCHAR(64) NULL,
+		notes			VARCHAR(255),
+		UNIQUE KEY token_sha256 (token_sha256)
+	) engine=InnoDB default charset utf8;`),
+		heredoc.Doc(`
 	CREATE TABLE IF NOT EXISTS civicrm_bb_ext_payment_responses (
 		user_key	 				VARCHAR(255) NOT NULL,
 		transaction_id 				VARCHAR(255),

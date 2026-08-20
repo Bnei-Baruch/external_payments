@@ -5,6 +5,8 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"html/template"
 	"log"
@@ -48,6 +50,22 @@ func main() {
 	if isProd {
 		_ = db.Connect()
 		defer db.Disconnect()
+
+		// Loaded once: the request path does no database work. Adding or
+		// revoking a key therefore needs a restart.
+		if n, err := db.LoadAPIClients(); err != nil {
+			log.Printf("api clients: load failed, guarded routes stay open: %v", err)
+		} else if n == 0 {
+			log.Printf("api clients: none provisioned, guarded routes are open and logging callers")
+		} else {
+			log.Printf("api clients: %d loaded", n)
+		}
+	}
+
+	// external_payments -createkey <name> [organization] [notes]
+	if len(os.Args) > 1 && os.Args[1] == "-createkey" {
+		createKey(os.Args[2:])
+		return
 	}
 
 	r := gin.New()
@@ -79,7 +97,7 @@ func router(r *gin.Engine, isProd bool) {
 		// keyed on an enumerable approval number, with the organization chosen
 		// by the caller. 4priority, the only caller, posts.
 		payments.GET("/transaction", utils.Gone)
-		payments.POST("/transaction", payment.GetTransaction)
+		payments.POST("/transaction", utils.RequireAPIClient(), payment.GetTransaction)
 	}
 	renew := r.Group("/renew")
 	{
@@ -209,4 +227,39 @@ func CORSMiddleware() gin.HandlerFunc {
 			c.Next()
 		}
 	}
+}
+
+// createKey mints a client token, prints it once and exits. The token is not
+// recoverable afterwards — only its hash is stored.
+func createKey(args []string) {
+	if len(args) < 1 {
+		fmt.Println("usage: external_payments -createkey <name> [organization] [notes]")
+		os.Exit(2)
+	}
+	var organization, notes string
+	if len(args) > 1 {
+		organization = args[1]
+	}
+	if len(args) > 2 {
+		notes = args[2]
+	}
+
+	raw := make([]byte, 32)
+	if _, err := rand.Read(raw); err != nil {
+		log.Fatalf("generate token: %v", err)
+	}
+	token := base64.RawURLEncoding.EncodeToString(raw)
+
+	id, err := db.CreateAPIClient(args[0], organization, token, notes)
+	if err != nil {
+		log.Fatalf("create client: %v", err)
+	}
+
+	fmt.Printf("client id   %d\n", id)
+	fmt.Printf("name        %s\n", args[0])
+	if organization != "" {
+		fmt.Printf("organization %s\n", organization)
+	}
+	fmt.Printf("token       %s\n", token)
+	fmt.Println("\nStore it now — only the hash is kept. Restart the service to load it.")
 }
