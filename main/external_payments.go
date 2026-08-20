@@ -53,12 +53,15 @@ func main() {
 
 		// Loaded once: the request path does no database work. Adding or
 		// revoking a key therefore needs a restart.
-		if n, err := db.LoadAPIClients(); err != nil {
-			log.Printf("api clients: load failed, guarded routes stay open: %v", err)
-		} else if n == 0 {
-			log.Printf("api clients: none provisioned, guarded routes are open and logging callers")
-		} else {
-			log.Printf("api clients: %d loaded", n)
+		internal := os.Getenv("INTERNAL_API_TOKEN") != ""
+		n, err := db.LoadAPIClients()
+		switch {
+		case err != nil:
+			log.Printf("api clients: load failed (%v); internal token set: %t", err, internal)
+		case n == 0 && !internal:
+			log.Printf("api clients: none, and no INTERNAL_API_TOKEN — guarded routes are OPEN and logging callers")
+		default:
+			log.Printf("api clients: %d loaded, internal token set: %t — guarded routes enforced", n, internal)
 		}
 	}
 
