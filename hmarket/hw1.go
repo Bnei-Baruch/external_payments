@@ -117,7 +117,10 @@ func HW1(c *gin.Context) {
 
 	sig := c.GetHeader("X-Wc-Webhook-Signature")
 	if !verifySignature(body, sig) {
-		log.Printf("[hmarket/hw1] invalid signature: sig=%s body=%s", sig, string(body))
+		// The body is a full WooCommerce order — name, email, phone, address,
+		// line items — and this fires for anyone posting junk to a public
+		// webhook. Report the shape, not the contents.
+		log.Printf("[hmarket/hw1] invalid signature: sig_len=%d body_bytes=%d", len(sig), len(body))
 		c.JSON(401, gin.H{"error": "invalid signature"})
 		return
 	}
@@ -141,7 +144,8 @@ func HW1(c *gin.Context) {
 	subscribed := extractSubscription(order.MetaData)
 
 	log.Printf("[hmarket/hw1] source=%s date=%s email=%s phone=%s uniq_phone=%s subscribed=%v",
-		source, order.DateCreated, order.Billing.Email, rawPhone, uniqPhone, subscribed)
+		source, order.DateCreated, maskEmail(order.Billing.Email),
+		maskPhone(rawPhone), maskPhone(uniqPhone), subscribed)
 
 	// convert "2026-06-02T15:04:05" → "2026-06-02 15:04:05" for MySQL
 	createdAt := order.DateCreated

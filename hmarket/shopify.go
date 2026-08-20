@@ -26,10 +26,10 @@ type shopifyAddress struct {
 }
 
 type shopifyCustomer struct {
-	Email      string          `json:"email"`
-	FirstName  string          `json:"first_name"`
-	LastName   string          `json:"last_name"`
-	Phone      string          `json:"phone"`
+	Email          string          `json:"email"`
+	FirstName      string          `json:"first_name"`
+	LastName       string          `json:"last_name"`
+	Phone          string          `json:"phone"`
 	DefaultAddress *shopifyAddress `json:"default_address"`
 }
 
@@ -40,13 +40,13 @@ type shopifyLineItem struct {
 }
 
 type shopifyCheckout struct {
-	CartToken             string           `json:"cart_token"`
-	Email                 string           `json:"email"`
-	Phone                 string           `json:"phone"`
-	CompletedAt           *string          `json:"completed_at"`
-	BuyerAcceptsMarketing bool             `json:"buyer_accepts_marketing"`
-	BillingAddress        *shopifyAddress  `json:"billing_address"`
-	Customer              *shopifyCustomer `json:"customer"`
+	CartToken             string            `json:"cart_token"`
+	Email                 string            `json:"email"`
+	Phone                 string            `json:"phone"`
+	CompletedAt           *string           `json:"completed_at"`
+	BuyerAcceptsMarketing bool              `json:"buyer_accepts_marketing"`
+	BillingAddress        *shopifyAddress   `json:"billing_address"`
+	Customer              *shopifyCustomer  `json:"customer"`
 	LineItems             []shopifyLineItem `json:"line_items"`
 }
 
@@ -89,8 +89,9 @@ func Shopify(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[hmarket/shopify] cart=%s completed_at=%v email=%s phone=%s billing=%+v",
-		checkout.CartToken, checkout.CompletedAt, checkout.Email, checkout.Phone, checkout.BillingAddress)
+	log.Printf("[hmarket/shopify] cart=%s completed_at=%v email=%s phone=%s has_billing=%v",
+		checkout.CartToken, checkout.CompletedAt, maskEmail(checkout.Email),
+		maskPhone(checkout.Phone), checkout.BillingAddress != nil)
 
 	if checkout.CompletedAt == nil || *checkout.CompletedAt == "" {
 		c.JSON(200, gin.H{"status": "ignored"})
@@ -110,9 +111,9 @@ func Shopify(c *gin.Context) {
 	}
 
 	firstName = addr.FirstName
-	lastName  = addr.LastName
-	rawPhone  = addr.Phone
-	email     = checkout.Email
+	lastName = addr.LastName
+	rawPhone = addr.Phone
+	email = checkout.Email
 
 	if rawPhone == "" && checkout.Customer != nil {
 		rawPhone = checkout.Customer.Phone
@@ -130,15 +131,15 @@ func Shopify(c *gin.Context) {
 	uniqPhone := normalizePhone(rawPhone)
 
 	user := types.HMarketUser{
-		FirstName: firstName,
-		LastName:  lastName,
-		Address1:  addr.Address1,
-		Address2:  addr.Address2,
-		City:      addr.City,
-		Country:   addr.Country,
-		Email:     email,
-		Phone:     strPtr(rawPhone),
-		UniqPhone: strPtr(uniqPhone),
+		FirstName:  firstName,
+		LastName:   lastName,
+		Address1:   addr.Address1,
+		Address2:   addr.Address2,
+		City:       addr.City,
+		Country:    addr.Country,
+		Email:      email,
+		Phone:      strPtr(rawPhone),
+		UniqPhone:  strPtr(uniqPhone),
 		Subscribed: checkout.BuyerAcceptsMarketing,
 	}
 
@@ -149,7 +150,7 @@ func Shopify(c *gin.Context) {
 		return
 	}
 	log.Printf("[hmarket/shopify] user_id=%d is_new=%v email=%s phone=%s cart=%s",
-		userID, isNew, email, rawPhone, checkout.CartToken)
+		userID, isNew, maskEmail(email), maskPhone(rawPhone), checkout.CartToken)
 
 	if isNew && user.Subscribed {
 		_ = dbCreateSubHistory(types.HMarketSubscriptionHistory{

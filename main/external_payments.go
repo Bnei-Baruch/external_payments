@@ -75,7 +75,10 @@ func router(r *gin.Engine, isProd bool) {
 		payments.POST("/cancel", payment.CancelPayment)
 		payments.GET("/confirm", payment.ConfirmPayment)
 		payments.POST("/confirm", payment.ConfirmPayment)
-		payments.GET("/transaction", payment.GetTransaction)
+		// GET retired: this returns the raw gateway response for a transaction,
+		// keyed on an enumerable approval number, with the organization chosen
+		// by the caller. 4priority, the only caller, posts.
+		payments.GET("/transaction", utils.Gone)
 		payments.POST("/transaction", payment.GetTransaction)
 	}
 	renew := r.Group("/renew")

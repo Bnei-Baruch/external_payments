@@ -15,7 +15,7 @@ import (
 // hebrewAliases maps Hebrew label keys to English field IDs.
 // Elementor sends the field label as webhook key when a label is set.
 var hebrewAliases = map[string]string{
-	"שם":    "name",
+	"שם":     "name",
 	"אימייל": "email",
 	"מייל":   "email",
 	"טלפון":  "phone",
@@ -61,7 +61,8 @@ func splitName(full string) (first, last string) {
 
 // Form handles Elementor Pro webhook for the HMarket landing page form.
 // Fields: name (→ first_name + last_name), email, phone → hmarket_users
-//         event, source → hmarket_activities (name, source)
+//
+//	event, source → hmarket_activities (name, source)
 func Form(c *gin.Context) {
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {

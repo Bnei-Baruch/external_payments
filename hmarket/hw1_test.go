@@ -1,7 +1,7 @@
 package hmarket
 
 import (
-	"encoding/json/v2"
+	"encoding/json/jsontext"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,12 +17,12 @@ func TestNormalizePhone(t *testing.T) {
 		in   string
 		want string
 	}{
-		{"0538268898",    "972538268898"},
-		{"053-826-8898",  "972538268898"},
+		{"0538268898", "972538268898"},
+		{"053-826-8898", "972538268898"},
 		{"+972538268898", "972538268898"},
-		{"972538268898",  "972538268898"},
-		{"",              ""},
-		{"abc",           ""},
+		{"972538268898", "972538268898"},
+		{"", ""},
+		{"abc", ""},
 	}
 	for _, tc := range cases {
 		got := normalizePhone(tc.in)
@@ -47,11 +47,11 @@ func TestExtractSubscription(t *testing.T) {
 		meta []wcMetaData
 		want bool
 	}{
-		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`"yes"`)}}, true},
-		{[]wcMetaData{{"cf_extra_consent", json.RawMessage(`"yes"`)}}, true},
-		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`"no"`)}}, false},
-		{[]wcMetaData{{"other_key", json.RawMessage(`"yes"`)}}, false},
-		{[]wcMetaData{{"_cf_extra_consent", json.RawMessage(`{"nested":"object"}`)}}, false},
+		{[]wcMetaData{{"_cf_extra_consent", jsontext.Value(`"yes"`)}}, true},
+		{[]wcMetaData{{"cf_extra_consent", jsontext.Value(`"yes"`)}}, true},
+		{[]wcMetaData{{"_cf_extra_consent", jsontext.Value(`"no"`)}}, false},
+		{[]wcMetaData{{"other_key", jsontext.Value(`"yes"`)}}, false},
+		{[]wcMetaData{{"_cf_extra_consent", jsontext.Value(`{"nested":"object"}`)}}, false},
 		{[]wcMetaData{}, false},
 	}
 	for _, tc := range cases {
